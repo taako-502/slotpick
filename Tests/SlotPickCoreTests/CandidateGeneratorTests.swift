@@ -63,11 +63,38 @@ final class CandidateGeneratorTests: XCTestCase {
         }
     }
 
-    func testFixedDurationSpreadsFiveCandidatesOverFiveDays() throws {
+    func testFixedDurationFillsEarlierDaysBeforeLaterDays() throws {
         let slots = try generate()
         XCTAssertEqual(slots.count, 5)
-        XCTAssertEqual(slots.map { calendar.component(.day, from: $0.start) }, [6, 7, 8, 9, 10])
+        XCTAssertEqual(slots.map { calendar.component(.day, from: $0.start) }, [6, 6, 7, 7, 8])
         XCTAssertTrue(slots.allSatisfy { $0.end.timeIntervalSince($0.start) == 3600 })
+    }
+
+    func testSeventeenCandidatesFillEarlierDaysUpToFiveForBothModes() throws {
+        for mode in [CandidateMode.fixedDuration, .freeTimeRanges] {
+            var c = SearchCondition()
+            c.searchDays = 23
+            c.endHour = 22
+            c.candidateMode = mode
+            c.candidateCount = 17
+            c.maxCandidatesPerDay = 5
+            c.excludeWeekends = true
+            c.excludeHolidays = true
+            // Four events leave five distinct ranges after the 30-minute buffers.
+            let busy =
+                mode == .freeTimeRanges
+                ? (7...29).flatMap { day in
+                    [12, 14, 16, 18].map { hour in
+                        BusySlot(start: date(day, hour), end: date(day, hour).addingTimeInterval(1800))
+                    }
+                } : []
+            let slots = try generate(busy, c)
+            XCTAssertEqual(slots.count, 17)
+            XCTAssertEqual(
+                slots.map { calendar.component(.day, from: $0.start) },
+                Array(repeating: 7, count: 5) + Array(repeating: 8, count: 5)
+                    + Array(repeating: 9, count: 5) + Array(repeating: 13, count: 2))
+        }
     }
 
     func testDefaultFreeTimeRangesKeepEntireEmptyWindow() throws {
@@ -146,7 +173,7 @@ final class CandidateGeneratorTests: XCTestCase {
         XCTAssertTrue(try generate([], c, now: date(6, 18)).isEmpty)
     }
 
-    func testFreeTimeRangesRespectDailyLimitAndSpreadAcrossDays() throws {
+    func testFreeTimeRangesRespectDailyLimitAndPreferEarlierDays() throws {
         var c = fixedDurationCondition()
         c.searchDays = 2
         c.candidateMode = .freeTimeRanges
@@ -198,7 +225,7 @@ final class CandidateGeneratorTests: XCTestCase {
         c.searchDays = 1
         XCTAssertTrue(try generate([BusySlot(start: date(6, 0), end: date(7, 0))], c).isEmpty)
     }
-    func testDailyLimitAndSecondRound() throws {
+    func testDailyLimitAcrossDays() throws {
         var c = fixedDurationCondition()
         c.searchDays = 2
         let slots = try generate([], c)
@@ -246,8 +273,10 @@ final class CandidateGeneratorTests: XCTestCase {
         var cal = Calendar(identifier: .gregorian)
         cal.timeZone = TimeZone(identifier: "America/New_York")!
         let now = cal.date(from: DateComponents(year: 2026, month: 10, day: 31, hour: 9))!
+        var condition = fixedDurationCondition()
+        condition.maxCandidatesPerDay = 1
         let slots = try CandidateGenerator().generate(
-            busySlots: [], condition: fixedDurationCondition(), now: now, calendar: cal)
+            busySlots: [], condition: condition, now: now, calendar: cal)
         XCTAssertEqual(slots.map { cal.component(.hour, from: $0.start) }, [10, 10, 10, 10, 10])
         XCTAssertEqual(slots[1].start.timeIntervalSince(slots[0].start), 25 * 3600)
     }

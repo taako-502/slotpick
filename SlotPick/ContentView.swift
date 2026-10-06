@@ -52,10 +52,13 @@ struct ContentView: View {
                 Stepper(
                     "予定の前後の余白：\(model.condition.bufferMinutes)分", value: $model.condition.bufferMinutes, in: 0...120,
                     step: 15)
-                Stepper("候補数：\(model.condition.candidateCount)件", value: $model.condition.candidateCount, in: 1...20)
+                Stepper(
+                    "候補数（全体）：\(model.condition.candidateCount)件", value: $model.condition.candidateCount, in: 1...20)
                 Stepper(
                     "1日最大：\(model.condition.maxCandidatesPerDay)件", value: $model.condition.maxCandidatesPerDay,
                     in: 1...5)
+                Text("早い日から1日の上限まで選び、全体の候補数に達したら終了します。")
+                    .font(.caption).foregroundStyle(.secondary)
                 Toggle("土日を除外", isOn: $model.condition.excludeWeekends)
                 Toggle("日本の祝日・休日を除外", isOn: $model.condition.excludeHolidays)
                 if model.condition.excludeHolidays {

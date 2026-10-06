@@ -74,11 +74,11 @@ public struct CandidateGenerator {
             candidatesByDay.append(slots)
         }
 
-        // Offer one slot per day before offering the second slot on any day.
+        // Fill earlier days up to the daily limit before offering later dates.
         var result: [CandidateSlot] = []
-        for index in 0..<condition.maxCandidatesPerDay {
-            for slots in candidatesByDay where slots.count > index {
-                result.append(slots[index])
+        for slots in candidatesByDay {
+            for slot in slots {
+                result.append(slot)
                 if result.count == condition.candidateCount {
                     return result.sorted { $0.start < $1.start }
                 }
