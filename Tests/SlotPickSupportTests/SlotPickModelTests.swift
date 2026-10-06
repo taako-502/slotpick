@@ -75,6 +75,91 @@ final class SlotPickModelTests: XCTestCase {
         XCTAssertTrue(service.intervals.isEmpty)
     }
 
+    func testLastInputIsRestoredWithoutGenerating() throws {
+        let suite = "SlotPickTests.\(UUID().uuidString)"
+        let preferences = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { preferences.removePersistentDomain(forName: suite) }
+        let model = SlotPickModel(
+            service: FakeCalendar(), clipboard: FakeClipboard(), preferences: preferences)
+        XCTAssertEqual(model.condition, SearchCondition())
+        model.condition.startAfterDays = 3
+        model.condition.searchDays = 14
+        model.condition.startHour = 9
+        model.condition.endHour = 21
+        model.condition.candidateMode = .fixedDuration
+        model.condition.durationMinutes = 90
+        model.condition.bufferMinutes = 45
+        model.condition.candidateCount = 12
+        model.condition.maxCandidatesPerDay = 4
+        model.condition.excludeWeekends = true
+        model.condition.excludeHolidays = true
+
+        let service = FakeCalendar()
+        let restored = SlotPickModel(
+            service: service, clipboard: FakeClipboard(),
+            preferences: try XCTUnwrap(UserDefaults(suiteName: suite)))
+        XCTAssertEqual(restored.condition, model.condition)
+        XCTAssertFalse(restored.hasGenerated)
+        XCTAssertTrue(restored.candidates.isEmpty)
+        XCTAssertTrue(restored.text.isEmpty)
+        XCTAssertEqual(service.accessRequests, 0)
+
+        restored.condition.candidateMode = .freeTimeRanges
+        let reopened = SlotPickModel(
+            service: service, clipboard: FakeClipboard(), preferences: preferences)
+        XCTAssertEqual(reopened.condition, restored.condition)
+        XCTAssertEqual(reopened.condition.durationMinutes, 90)
+    }
+
+    func testSavedConditionWithoutOffsetPreservesPreviousInputs() throws {
+        let suite = "SlotPickTests.\(UUID().uuidString)"
+        let preferences = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { preferences.removePersistentDomain(forName: suite) }
+        var expected = SearchCondition()
+        expected.searchDays = 21
+        expected.startHour = 9
+        expected.excludeWeekends = true
+        expected.excludeHolidays = true
+        let encoded = try JSONEncoder().encode(expected)
+        var legacy = try XCTUnwrap(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        legacy.removeValue(forKey: "startAfterDays")
+        preferences.set(try JSONSerialization.data(withJSONObject: legacy), forKey: SlotPickModel.conditionKey)
+        let restored = SlotPickModel(
+            service: FakeCalendar(), clipboard: FakeClipboard(), preferences: preferences)
+        XCTAssertEqual(restored.condition, expected)
+        XCTAssertEqual(restored.condition.startAfterDays, 1)
+    }
+
+    func testUnfinishedTimeRangeIsPreserved() throws {
+        let suite = "SlotPickTests.\(UUID().uuidString)"
+        let preferences = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { preferences.removePersistentDomain(forName: suite) }
+        let model = SlotPickModel(
+            service: FakeCalendar(), clipboard: FakeClipboard(), preferences: preferences)
+        // Preserve the last input even before the user adjusts the end time.
+        model.condition.startHour = 20
+        let restored = SlotPickModel(
+            service: FakeCalendar(), clipboard: FakeClipboard(), preferences: preferences)
+        XCTAssertEqual(restored.condition, model.condition)
+        XCTAssertThrowsError(try restored.condition.validate())
+    }
+
+    func testUnreadableSavedInputFallsBackToDefaultsAndCanBeReplaced() throws {
+        let suite = "SlotPickTests.\(UUID().uuidString)"
+        let preferences = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { preferences.removePersistentDomain(forName: suite) }
+        for payload in ["not JSON", "{}", "{\"candidateMode\":\"unknown\"}"] {
+            preferences.set(Data(payload.utf8), forKey: SlotPickModel.conditionKey)
+            let model = SlotPickModel(
+                service: FakeCalendar(), clipboard: FakeClipboard(), preferences: preferences)
+            XCTAssertEqual(model.condition, SearchCondition())
+            model.condition.searchDays = 21
+            let restored = SlotPickModel(
+                service: FakeCalendar(), clipboard: FakeClipboard(), preferences: preferences)
+            XCTAssertEqual(restored.condition.searchDays, 21)
+        }
+    }
+
     func testPermissionWaitUsesFreshTimeAndSearchDay() async {
         let service = FakeCalendar()
         let clipboard = FakeClipboard()

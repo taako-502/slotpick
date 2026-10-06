@@ -1,11 +1,11 @@
 import Foundation
 
-public enum CandidateMode: Hashable, Sendable {
+public enum CandidateMode: String, Codable, Hashable, Sendable {
     case fixedDuration
     case freeTimeRanges
 }
 
-public struct SearchCondition: Equatable, Sendable {
+public struct SearchCondition: Codable, Equatable, Sendable {
     public var startAfterDays = 1
     public var searchDays = 7
     public var startHour = 10
@@ -19,6 +19,27 @@ public struct SearchCondition: Equatable, Sendable {
     public var excludeHolidays = false
 
     public init() {}
+
+    private enum CodingKeys: String, CodingKey {
+        case startAfterDays, searchDays, startHour, endHour, durationMinutes, candidateMode
+        case bufferMinutes, candidateCount, maxCandidatesPerDay, excludeWeekends, excludeHolidays
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        // Older saved conditions predate the configurable start day.
+        startAfterDays = try values.decodeIfPresent(Int.self, forKey: .startAfterDays) ?? 1
+        searchDays = try values.decode(Int.self, forKey: .searchDays)
+        startHour = try values.decode(Int.self, forKey: .startHour)
+        endHour = try values.decode(Int.self, forKey: .endHour)
+        durationMinutes = try values.decode(Int.self, forKey: .durationMinutes)
+        candidateMode = try values.decode(CandidateMode.self, forKey: .candidateMode)
+        bufferMinutes = try values.decode(Int.self, forKey: .bufferMinutes)
+        candidateCount = try values.decode(Int.self, forKey: .candidateCount)
+        maxCandidatesPerDay = try values.decode(Int.self, forKey: .maxCandidatesPerDay)
+        excludeWeekends = try values.decode(Bool.self, forKey: .excludeWeekends)
+        excludeHolidays = try values.decode(Bool.self, forKey: .excludeHolidays)
+    }
 
     public func validate() throws {
         guard (0...365).contains(startAfterDays),

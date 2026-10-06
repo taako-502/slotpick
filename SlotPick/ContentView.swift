@@ -4,7 +4,8 @@ import SlotPickSupport
 import SwiftUI
 
 struct ContentView: View {
-    @State private var model = SlotPickModel(service: CalendarService(), clipboard: SystemClipboard())
+    @State private var model = SlotPickModel(
+        service: CalendarService(), clipboard: SystemClipboard(), preferences: .standard)
     @Environment(\.scenePhase) private var scenePhase
     private let clock = Timer.publish(every: 30, on: .main, in: .common).autoconnect()
 
