@@ -28,6 +28,7 @@ trap cleanup EXIT
 cd "$repo_dir"
 xcodebuild -project SlotPick.xcodeproj -scheme SlotPick -configuration Release \
   -destination 'generic/platform=macOS' -derivedDataPath "$task_dir/derived" \
+  -clonedSourcePackagesDirPath "$task_dir/packages" \
   ARCHS='arm64 x86_64' ONLY_ACTIVE_ARCH=NO \
   MARKETING_VERSION="$version" CURRENT_PROJECT_VERSION="$build_number" build
 
@@ -52,4 +53,7 @@ hdiutil detach "$task_dir/mounted"
 mounted=false
 cp "$task_dir/$asset" "$output_dir/$asset"
 (cd "$output_dir" && shasum -a 256 "$asset" > "$asset.sha256")
+python3 scripts/appcast.py --app "$app_path" --archive "$output_dir/$asset" \
+  --sign-tool "$task_dir/packages/artifacts/sparkle/Sparkle/bin/sign_update" \
+  --output "$output_dir/appcast.xml"
 echo "Verified DMG: $output_dir/$asset"

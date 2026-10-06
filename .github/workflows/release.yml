@@ -56,9 +56,19 @@ jobs:
             -configuration Debug -destination "platform=macOS,arch=$(uname -m)" \
             -derivedDataPath "$RUNNER_TEMP/slotpick-tests" test
 
+      - name: Require update signing key
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          if [[ -z "$SPARKLE_PRIVATE_KEY" ]]; then
+            echo '::error::SPARKLE_PRIVATE_KEY Secretを設定してください。'
+            exit 1
+          fi
+
       - name: Build and verify universal DMG
         env:
           VERSION: ${{ steps.version.outputs.version }}
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
         run: bash scripts/build-dmg.sh "$VERSION" "$GITHUB_RUN_NUMBER" "$RUNNER_TEMP/release-assets"
 
       - name: Tag and publish GitHub Release

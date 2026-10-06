@@ -110,6 +110,8 @@ class RepositoryTests(unittest.TestCase):
         dmg.write_bytes(b"fixture: a previously validated DMG")
         checksum = assets / "SlotPick-0.1.1.dmg.sha256"
         checksum.write_text(hashlib.sha256(dmg.read_bytes()).hexdigest() + "  " + dmg.name + "\n")
+        appcast = assets / "appcast.xml"
+        appcast.write_text("<rss/>\n")
         state = {"release": None, "fail_upload": True, "commands": []}
         real_command = release.command
 
@@ -124,9 +126,9 @@ class RepositoryTests(unittest.TestCase):
                 self.assertTrue(state["release"]["draft"])
                 if state["fail_upload"]:
                     raise RuntimeError("Simulated network failure")
-                state["release"]["assets"] = [{"name": p.name, "size": p.stat().st_size} for p in [dmg, checksum]]
+                state["release"]["assets"] = [{"name": p.name, "size": p.stat().st_size} for p in [dmg, checksum, appcast]]
             elif args[2] == "edit":
-                self.assertEqual(len(state["release"]["assets"]), 2)
+                self.assertEqual(len(state["release"]["assets"]), 3)
                 state["release"]["draft"] = False
             else:
                 self.fail(f"Unexpected network command: {args}")

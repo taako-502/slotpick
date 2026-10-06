@@ -90,7 +90,7 @@ def publish(version, bump, run_id, assets):
     parse_version(version)
     marker(run_id, bump)
     assets = Path(assets).resolve()
-    filenames = [f"SlotPick-{version}.dmg", f"SlotPick-{version}.dmg.sha256"]
+    filenames = [f"SlotPick-{version}.dmg", f"SlotPick-{version}.dmg.sha256", "appcast.xml"]
     for name in filenames:
         if not (assets / name).is_file() or (assets / name).stat().st_size == 0:
             raise ValueError(f"Missing release asset: {name}")
@@ -116,20 +116,21 @@ def publish(version, bump, run_id, assets):
 
     if not release:
         notes = (
-            f"SlotPick {version}\n\n"
+            f"[via ChatGPT]\n\nSlotPick {version}\n\n"
             f"Assetsから `{filenames[0]}` をダウンロードし、SlotPick.appをApplicationsへドラッグしてください。\n\n"
             "- macOS 14以降 / Apple Silicon・Intel対応\n"
             "- 初回起動時にカレンダーのフルアクセスを許可してください。\n"
             "- ローカル（ad-hoc）署名版です。Developer ID署名・Appleの公証は未実施のため、macOSで警告される場合があります。\n"
-            "- SHA-256チェックサムを併記しています。\n\n"
-            f"Source: `{command('git', 'rev-parse', 'HEAD')}`\n\n[via ChatGPT]\n"
+            "- SHA-256チェックサムと、署名付きのアプリ内更新情報を添付しています。\n"
+            "- この版への初回更新はDMGで行ってください。以後はSlotPickメニューの「アップデートを確認…」から更新できます。\n\n"
+            f"Source: `{command('git', 'rev-parse', 'HEAD')}`\n"
         )
         with tempfile.TemporaryDirectory() as temp:
             note_path = Path(temp) / "release-notes.md"
             note_path.write_text(notes)
             command("gh", "release", "create", tag, "--verify-tag", "--draft", "--title", f"SlotPick {tag}", "--notes-file", str(note_path))
 
-    # Only drafts can be resumed/replaced. Publish after BOTH assets have uploaded.
+    # Only drafts can be resumed/replaced. Publish after all assets have uploaded.
     command("gh", "release", "upload", tag, *(str(assets / name) for name in filenames), "--clobber")
     release = get_release(tag)
     if release is None:
