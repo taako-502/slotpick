@@ -1,0 +1,139 @@
+import XCTest
+@testable import SlotPickCore
+
+final class CandidateGeneratorTests: XCTestCase {
+    var calendar: Calendar { var c = Calendar(identifier: .gregorian); c.timeZone = TimeZone(identifier: "Asia/Tokyo")!; return c }
+    func date(_ day: Int = 6, _ hour: Int, _ minute: Int = 0) -> Date {
+        calendar.date(from: DateComponents(year: 2026, month: 10, day: day, hour: hour, minute: minute))!
+    }
+    func generate(_ busy: [BusySlot] = [], _ condition: SearchCondition = SearchCondition(), now: Date? = nil) throws -> [CandidateSlot] {
+        try CandidateGenerator().generate(busySlots: busy, condition: condition, now: now ?? date(6, 9), calendar: calendar)
+    }
+    func testDefaultSpreadsFiveCandidatesOverFiveDays() throws {
+        let slots = try generate()
+        XCTAssertEqual(slots.count, 5)
+        XCTAssertEqual(slots.map { calendar.component(.day, from: $0.start) }, [6,7,8,9,10])
+        XCTAssertTrue(slots.allSatisfy { $0.end.timeIntervalSince($0.start) == 3600 })
+    }
+    func testBufferAndMergedOverlappingEvents() throws {
+        var c = SearchCondition(); c.searchDays = 1
+        let slots = try generate([BusySlot(start: date(6,10), end: date(6,11)), BusySlot(start: date(6,10,45), end: date(6,12)), BusySlot(start: date(6,14), end: date(6,15))], c)
+        XCTAssertEqual(slots.map(\.start), [date(6,12,30), date(6,15,30)])
+    }
+    func testAllDayEventAndNoAvailability() throws {
+        var c = SearchCondition(); c.searchDays = 1
+        XCTAssertTrue(try generate([BusySlot(start: date(6,0), end: date(7,0))],c).isEmpty)
+    }
+    func testDailyLimitAndSecondRound() throws {
+        var c = SearchCondition(); c.searchDays = 2
+        let slots = try generate([],c)
+        XCTAssertEqual(slots.count,4)
+        XCTAssertEqual(slots.map(\.start), [date(6,10),date(6,11),date(7,10),date(7,11)])
+    }
+    func testNowRoundsUpAndDoesNotOfferPastSlots() throws {
+        var c = SearchCondition(); c.searchDays = 1
+        XCTAssertEqual(try generate([],c,now:date(6,10,7)).first?.start,date(6,10,15))
+    }
+    func testExactGapBoundaryFits() throws {
+        var c = SearchCondition(); c.searchDays = 1; c.maxCandidatesPerDay = 1
+        XCTAssertEqual(try generate([BusySlot(start:date(6,11,30),end:date(6,18))],c).first?.end,date(6,11))
+    }
+    func testOutsideRangeEventBufferBlocksStart() throws {
+        var c = SearchCondition(); c.searchDays = 1
+        XCTAssertEqual(try generate([BusySlot(start:date(6,8),end:date(6,9,45))],c).first?.start,date(6,10,15))
+    }
+    func testEventEndRoundsToQuarterHour() throws {
+        var c = SearchCondition(); c.searchDays = 1
+        XCTAssertEqual(try generate([BusySlot(start:date(6,9),end:date(6,10,7))],c).first?.start,date(6,10,45))
+    }
+    func testInvalidConditionsThrow() {
+        var c = SearchCondition(); c.startHour = 18
+        XCTAssertThrowsError(try generate([],c))
+        c = SearchCondition(); c.durationMinutes = 0
+        XCTAssertThrowsError(try generate([],c))
+    }
+    func testFormatterIncludesTimeZoneAndEndTime() throws {
+        let text = CandidateFormatter().text(try generate(),timeZone:calendar.timeZone)
+        XCTAssertTrue(text.contains("Asia/Tokyo"))
+        XCTAssertTrue(text.contains("10月6日（火）10:00〜11:00"))
+        XCTAssertEqual(CandidateFormatter().text([]),"")
+    }
+    func testDSTUsesCalendarDays() throws {
+        var cal = Calendar(identifier:.gregorian); cal.timeZone = TimeZone(identifier:"America/New_York")!
+        let now = cal.date(from:DateComponents(year:2026,month:10,day:31,hour:9))!
+        let slots = try CandidateGenerator().generate(busySlots:[],condition:SearchCondition(),now:now,calendar:cal)
+        XCTAssertEqual(slots.map { cal.component(.hour,from:$0.start) },[10,10,10,10,10])
+        XCTAssertEqual(slots[1].start.timeIntervalSince(slots[0].start),25*3600)
+    }
+    func testNonQuarterHourDurationKeepsCandidateStartsOnGrid() throws {
+        var c = SearchCondition(); c.searchDays = 1; c.durationMinutes = 20
+        XCTAssertEqual(try generate([], c).map(\.start), [date(6,10), date(6,10,30)])
+    }
+
+    func testMidnightEndIncludesFollowingDate() {
+        let slot = CandidateSlot(start: date(6,23), end: date(7,0))
+        XCTAssertEqual(CandidateFormatter().line(slot, timeZone: calendar.timeZone),
+                       "・2026年10月6日（火）23:00〜2026年10月7日（水）00:00")
+    }
+
+    func testEndHour24AndNoCandidatePastWindow() throws {
+        var c = SearchCondition(); c.searchDays = 1; c.startHour = 23; c.endHour = 24
+        let slots = try generate([], c)
+        XCTAssertEqual(slots, [CandidateSlot(start:date(6,23),end:date(7,0))])
+    }
+
+    func testQueryIncludesBuffersOnBothSidesAndCalendarDayAcrossDST() throws {
+        var c = SearchCondition(); c.searchDays = 1
+        let query = try c.eventQueryInterval(now: date(6,9), calendar: calendar)
+        XCTAssertEqual(query.start, date(5,23,30))
+        XCTAssertEqual(query.end, date(7,0,30))
+    }
+
+    func testSecondsRoundUp() throws {
+        var c = SearchCondition(); c.searchDays = 1
+        XCTAssertEqual(try generate([],c,now:date(6,10).addingTimeInterval(0.1)).first?.start,date(6,10,15))
+    }
+
+    func testDSTSpringForwardDoesNotSpillOutsideLocalWindow() throws {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "America/New_York")!
+        let now = cal.date(from:DateComponents(year:2026,month:3,day:8,hour:0))!
+        var c = SearchCondition(); c.searchDays = 1; c.startHour = 1; c.endHour = 4; c.bufferMinutes = 0
+        let slots = try CandidateGenerator().generate(busySlots:[],condition:c,now:now,calendar:cal)
+        XCTAssertEqual(slots.count,2)
+        XCTAssertEqual(slots.map { cal.component(.hour,from:$0.start) },[1,3])
+        XCTAssertTrue(slots.allSatisfy { $0.end.timeIntervalSince($0.start) == 3600 })
+        XCTAssertTrue(CandidateFormatter().line(slots[0],timeZone:cal.timeZone).contains("-05:00"))
+        XCTAssertTrue(CandidateFormatter().line(slots[0],timeZone:cal.timeZone).contains("-04:00"))
+    }
+
+    func testGeneratedSlotsRespectBusyBuffersAndBoundsForManySchedules() throws {
+        // Deterministic schedules exercise nested, touching, unsorted, and cross-day events.
+        for seed in 0..<40 {
+            var c = SearchCondition(); c.searchDays = 3; c.candidateCount = 10
+            c.bufferMinutes = (seed % 4) * 15; c.durationMinutes = [20,30,60,90][seed % 4]
+            let busy = (0..<9).map { index in
+                let start = date(6 + index % 3, 7).addingTimeInterval(Double((seed * 43 + index * 97) % 660) * 60)
+                return BusySlot(start:start,end:start.addingTimeInterval(Double(20 + index * 11) * 60))
+            }.reversed()
+            let slots = try generate(Array(busy),c)
+            XCTAssertLessThanOrEqual(slots.count,c.candidateCount)
+            for slot in slots {
+                XCTAssertGreaterThanOrEqual(slot.start,date(6,9))
+                XCTAssertEqual(calendar.component(.minute,from:slot.start) % 15,0)
+                XCTAssertEqual(slot.end.timeIntervalSince(slot.start),Double(c.durationMinutes)*60)
+                let day = calendar.component(.day,from:slot.start)
+                XCTAssertGreaterThanOrEqual(slot.start,date(day,10))
+                XCTAssertLessThanOrEqual(slot.end,date(day,18))
+                for block in busy {
+                    let margin = Double(c.bufferMinutes)*60
+                    XCTAssertTrue(slot.end <= block.start.addingTimeInterval(-margin) || slot.start >= block.end.addingTimeInterval(margin))
+                }
+            }
+            for pair in zip(slots,slots.dropFirst()) { XCTAssertLessThanOrEqual(pair.0.end,pair.1.start) }
+            let grouped = Dictionary(grouping:slots) { calendar.startOfDay(for:$0.start) }
+            XCTAssertTrue(grouped.values.allSatisfy { $0.count <= c.maxCandidatesPerDay })
+        }
+    }
+
+}
