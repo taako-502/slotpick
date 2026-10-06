@@ -120,7 +120,7 @@ def publish(version, bump, run_id, assets):
             f"Assetsから `{filenames[0]}` をダウンロードし、SlotPick.appをApplicationsへドラッグしてください。\n\n"
             "- macOS 14以降 / Apple Silicon・Intel対応\n"
             "- 初回起動時にカレンダーのフルアクセスを許可してください。\n"
-            "- ローカル（ad-hoc）署名版です。Developer ID署名・Appleの公証は未実施のため、macOSで警告される場合があります。\n"
+            "- Developer ID署名・Appleの公証済みです。初回起動時にはmacOS標準のダウンロード確認が表示される場合があります。\n"
             "- SHA-256チェックサムと、署名付きのアプリ内更新情報を添付しています。\n"
             "- この版への初回更新はDMGで行ってください。以後はSlotPickメニューの「アップデートを確認…」から更新できます。\n\n"
             f"Source: `{command('git', 'rev-parse', 'HEAD')}`\n"

@@ -82,18 +82,18 @@ xcodebuild -project SlotPick.xcodeproj -scheme SlotPick -destination 'platform=m
 
 - 実行時のmainのコミットを固定して取得し、次のバージョンを決定。
 - リリース処理のテストとmacOSアプリの全テストを実行。
-- Apple Silicon・Intel両対応のReleaseビルドを作成。
-- DMGを生成し、アプリの署名・内部バージョン・両CPU対応・DMG内の内容を検証。
+- Apple Silicon・Intel両対応のReleaseをDeveloper ID署名・Hardened Runtime付きでArchive/Export。
+- アプリとDMGをAppleへ公証申請し、公証チケットを付与。署名・Gatekeeper・内部バージョン・両CPU対応・DMG内の内容を検証。
 - `vX.Y.Z` タグと下書きReleaseを作成し、DMG・SHA-256チェックサム・署名付き更新情報 `appcast.xml` を添付。
 - 添付を確認してからReleaseを公開。
 
 タグ作成前のテスト・ビルド失敗ではReleaseは作成しません。タグ作成後にアップロード等が失敗したら、同じ実行の **Re-run all jobs** で同じタグ・下書きから再開できます。公開済みReleaseの再実行では既存の配布物を置き換えません。別の **Run workflow** は新しいバージョンを発行する操作です。同時実行は直列化しています。
 
-`GITHUB_TOKEN` の `contents: write` をワークフロー内で要求するので、更新署名用の `SPARKLE_PRIVATE_KEY` Secretは前述の手順で設定してください。GitHubの公開操作用には通常、追加の認証Secretは不要です。組織ポリシーやタグ保護で拒否された場合は、該当ルールを管理者が確認してください。既定ブランチ以外からの実行はエラーにします。通常のpushだけではリリースされません。リポジトリは公開されており、Releaseはログインなしでダウンロードできます。
+`GITHUB_TOKEN` の `contents: write` をワークフロー内で要求します。更新署名用の `SPARKLE_PRIVATE_KEY` に加え、Appleの署名・公証用Secretsを下記の初期設定手順に従って登録してください。組織ポリシーやタグ保護で拒否された場合は、該当ルールを管理者が確認してください。既定ブランチ以外からの実行はエラーにします。通常のpushだけではリリースされません。リポジトリは公開されており、Releaseはログインなしでダウンロードできます。
 
 ### 署名について
 
-現在発行するのは **ad-hoc署名版** です。Developer ID署名・Appleの公証は未実施なので、インターネットからダウンロードしたアプリはmacOSに警告・ブロックされる場合があります。一般向けのスムーズな配布には、Apple Developer ProgramのDeveloper ID証明書と公証用の認証情報を別途設定する必要があります。
+今後の配布は **Developer ID署名・Apple公証を必須** とします。[初期設定手順](docs/macos-release-signing.md)に従って、Apple Developer Programの証明書と認証情報を登録してください。未設定や公証失敗時はリリースを停止します。従来のad-hoc署名版は引き続きmacOSにブロックされる場合があり、新しい公証済みDMGへの更新が必要です。通常の開発ビルドにはこの設定は不要です。
 
 ### ローカルでリリース処理を確認する
 
@@ -101,8 +101,8 @@ xcodebuild -project SlotPick.xcodeproj -scheme SlotPick -destination 'platform=m
 python3 -m unittest discover -s scripts/tests -v
 # 次のバージョンの表示のみ。タグやReleaseは作成しません。
 python3 scripts/release.py plan --bump patch --run-id 1
-# 署名・マウント・チェックサム確認を含めてDMGを作成します。
-bash scripts/build-dmg.sh 0.1.1 1 /tmp/slotpick-release-assets
+# 初期設定手順の認証情報を環境変数に用意して、公証済みDMGを作成します。
+python3 scripts/signed-release.py 0.1.1 1 /tmp/slotpick-release-assets
 ```
 
 GitHubの公開操作は手動ワークフローの最後だけで実行します。リリース処理のテストは一時的なローカルGitリポジトリと模擬APIを使用します。
