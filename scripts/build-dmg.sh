@@ -36,6 +36,8 @@ mkdir -p "$task_dir/staging"
 app_path="$task_dir/staging/SlotPick.app"
 ditto --norsrc --noextattr "$task_dir/derived/Build/Products/Release/SlotPick.app" "$app_path"
 ln -s /Applications "$task_dir/staging/Applications"
+cp "$repo_dir/distribution/01 はじめに.txt" "$task_dir/staging/"
+cp "$repo_dir/distribution/02 プライバシーとセキュリティを開く.inetloc" "$task_dir/staging/"
 codesign --verify --deep --strict "$app_path"
 actual_version=$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$app_path/Contents/Info.plist")
 actual_build=$(/usr/libexec/PlistBuddy -c 'Print CFBundleVersion' "$app_path/Contents/Info.plist")
@@ -49,6 +51,9 @@ hdiutil attach -readonly -nobrowse -mountpoint "$task_dir/mounted" "$task_dir/$a
 mounted=true
 codesign --verify --deep --strict "$task_dir/mounted/SlotPick.app"
 [[ "$(readlink "$task_dir/mounted/Applications")" == /Applications ]]
+cmp "$repo_dir/distribution/01 はじめに.txt" "$task_dir/mounted/01 はじめに.txt"
+cmp "$repo_dir/distribution/02 プライバシーとセキュリティを開く.inetloc" \
+  "$task_dir/mounted/02 プライバシーとセキュリティを開く.inetloc"
 hdiutil detach "$task_dir/mounted"
 mounted=false
 cp "$task_dir/$asset" "$output_dir/$asset"

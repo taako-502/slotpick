@@ -95,6 +95,10 @@ xcodebuild -project SlotPick.xcodeproj -scheme SlotPick -destination 'platform=m
 
 現在発行するのは **ad-hoc署名版** です。Developer ID署名・Appleの公証は未実施なので、インターネットからダウンロードしたアプリはmacOSに警告・ブロックされる場合があります。一般向けのスムーズな配布には、Apple Developer ProgramのDeveloper ID証明書と公証用の認証情報を別途設定する必要があります。
 
+現在の配布・利用にApple Developer Programへの有料加入は不要です。DMGには「01 はじめに.txt」と「02 プライバシーとセキュリティを開く.inetloc」を同梱します。起動がブロックされた場合は、入手元を確認したうえで、このリンクから設定を開き、SlotPickの「このまま開く」を選択してください。リンクは設定画面を開くだけで、起動許可の操作はユーザーが行います。
+
+リンクで開けない場合は **Appleメニュー → システム設定 → プライバシーとセキュリティ** を手動で開いてください。設定リンクの動作や表示名はmacOSのバージョンによって異なる場合があります。起動前の警告にアプリからボタンを追加したり、自動で設定へ遷移したりすることはできません。[Appleの初回起動の案内](https://support.apple.com/ja-jp/102445)も参照してください。
+
 ### ローカルでリリース処理を確認する
 
 ```sh
