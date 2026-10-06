@@ -1,11 +1,11 @@
 import Foundation
 
-public enum CandidateMode: Hashable, Sendable {
+public enum CandidateMode: String, Codable, Hashable, Sendable {
     case fixedDuration
     case freeTimeRanges
 }
 
-public struct SearchCondition: Equatable, Sendable {
+public struct SearchCondition: Codable, Equatable, Sendable {
     public var searchDays = 7
     public var startHour = 10
     public var endHour = 18
