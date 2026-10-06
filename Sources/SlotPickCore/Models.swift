@@ -10,7 +10,7 @@ public struct SearchCondition: Equatable, Sendable {
     public var startHour = 10
     public var endHour = 18
     public var durationMinutes = 60
-    public var candidateMode: CandidateMode = .fixedDuration
+    public var candidateMode: CandidateMode = .freeTimeRanges
     public var bufferMinutes = 30
     public var candidateCount = 5
     public var maxCandidatesPerDay = 2

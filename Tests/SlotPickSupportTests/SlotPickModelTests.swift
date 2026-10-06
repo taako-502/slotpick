@@ -116,6 +116,8 @@ final class SlotPickModelTests: XCTestCase {
         let clipboard = FakeClipboard()
         let model = SlotPickModel(
             service: FakeCalendar(), clipboard: clipboard, now: { self.date(6, 9) }, calendar: { self.calendar })
+        XCTAssertEqual(model.condition.candidateMode, .freeTimeRanges)
+        model.condition.candidateMode = .fixedDuration
         model.condition.searchDays = 1
         await model.generate()
         XCTAssertEqual(model.candidates.first?.end, date(6, 11))
