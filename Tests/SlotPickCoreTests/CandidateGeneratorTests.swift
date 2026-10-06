@@ -136,4 +136,62 @@ final class CandidateGeneratorTests: XCTestCase {
         }
     }
 
+    func testWeekendAndHolidayExclusionCombinations() throws {
+        // 2026-10-10 Saturday, 11 Sunday, 12 Sports Day, 13 Tuesday.
+        for (weekends, holidays, expected) in [
+            (false, false, [10, 11, 12, 13]),
+            (true, false, [12, 13]),
+            (false, true, [10, 11, 13]),
+            (true, true, [13])
+        ] {
+            var c = SearchCondition()
+            c.searchDays = 4; c.candidateCount = 10; c.maxCandidatesPerDay = 1
+            c.excludeWeekends = weekends; c.excludeHolidays = holidays
+            let slots = try generate([], c, now: date(10,9))
+            XCTAssertEqual(slots.map { calendar.component(.day, from:$0.start) },expected)
+        }
+    }
+
+    func testExcludedDaysDoNotExtendSearchWindow() throws {
+        var c = SearchCondition(); c.searchDays = 3
+        c.excludeWeekends = true; c.excludeHolidays = true
+        XCTAssertTrue(try generate([],c,now:date(10,9)).isEmpty)
+    }
+
+    func testSubstituteAndCitizensHolidaysAreExcluded() throws {
+        var c = SearchCondition(); c.searchDays = 1; c.excludeHolidays = true
+        for (month, day) in [(5,6), (9,22)] {
+            let now = calendar.date(from:DateComponents(year:2026,month:month,day:day,hour:9))!
+            XCTAssertTrue(try generate([],c,now:now).isEmpty)
+        }
+    }
+
+    func testYearBoundaryExcludesNewYear() throws {
+        var c = SearchCondition(); c.searchDays = 2; c.excludeHolidays = true
+        let now = calendar.date(from:DateComponents(year:2026,month:12,day:31,hour:9))!
+        let slots = try generate([],c,now:now)
+        XCTAssertEqual(slots.count,2)
+        XCTAssertTrue(slots.allSatisfy { calendar.component(.day,from:$0.start) == 31 })
+    }
+
+    func testHolidayDataCoverageFailsOnlyWhenHolidayExclusionEnabled() throws {
+        var c = SearchCondition(); c.searchDays = 2; c.excludeHolidays = true
+        let now = calendar.date(from:DateComponents(year:2027,month:12,day:31,hour:9))!
+        XCTAssertThrowsError(try generate([],c,now:now)) { error in
+            guard case GenerationError.holidayDataUnavailable = error else { return XCTFail("Wrong error") }
+        }
+        c.excludeHolidays = false
+        XCTAssertFalse(try generate([],c,now:now).isEmpty)
+    }
+
+    func testHolidayDetectionUsesSearchTimeZoneAndGregorianYear() throws {
+        var japanese = Calendar(identifier:.japanese)
+        japanese.timeZone = calendar.timeZone
+        var c = SearchCondition(); c.searchDays = 1; c.excludeHolidays = true
+        XCTAssertTrue(try CandidateGenerator().generate(busySlots:[],condition:c,now:date(12,9),calendar:japanese).isEmpty)
+        let instant = date(12,0,30)
+        XCTAssertTrue(try JapaneseHolidays.isHoliday(instant,timeZone:calendar.timeZone))
+        XCTAssertFalse(try JapaneseHolidays.isHoliday(instant,timeZone:TimeZone(identifier:"America/Los_Angeles")!))
+    }
+
 }

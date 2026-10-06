@@ -28,10 +28,16 @@ struct ContentView: View {
                 Stepper("予定の前後の余白：\(model.condition.bufferMinutes)分", value: $model.condition.bufferMinutes, in: 0...120, step: 15)
                 Stepper("候補数：\(model.condition.candidateCount)件", value: $model.condition.candidateCount, in: 1...20)
                 Stepper("1日最大：\(model.condition.maxCandidatesPerDay)件", value: $model.condition.maxCandidatesPerDay, in: 1...5)
+                Toggle("土日を除外", isOn: $model.condition.excludeWeekends)
+                Toggle("日本の祝日・休日を除外", isOn: $model.condition.excludeHolidays)
+                if model.condition.excludeHolidays {
+                    Text("振替休日を含む・\(String(JapaneseHolidays.supportedYears.upperBound))年まで対応")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
             }
             .disabled(model.isLoading)
 
-            Text("土日を含みます。Macに同期された全カレンダーを対象に、終日予定も確認します。「空き時間」の予定は除外します。")
+            Text("Macに同期された全カレンダーを対象に、終日予定も確認します。「空き時間」の予定は除外します。")
                 .font(.caption).foregroundStyle(.secondary)
 
             HStack {

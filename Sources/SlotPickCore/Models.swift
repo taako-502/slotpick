@@ -8,6 +8,8 @@ public struct SearchCondition: Equatable, Sendable {
     public var bufferMinutes = 30
     public var candidateCount = 5
     public var maxCandidatesPerDay = 2
+    public var excludeWeekends = false
+    public var excludeHolidays = false
 
     public init() {}
 

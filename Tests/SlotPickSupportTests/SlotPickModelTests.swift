@@ -147,4 +147,16 @@ final class SlotPickModelTests: XCTestCase {
         XCTAssertFalse(model.hasGenerated)
         XCTAssertNotNil(model.message)
     }
+    func testExclusionSettingsInvalidateGeneratedCandidates() async {
+        let model = SlotPickModel(service:FakeCalendar(),clipboard:FakeClipboard(),now:{ self.date(6,9) },calendar:{ self.calendar })
+        await model.generate()
+        model.condition.excludeWeekends = true
+        XCTAssertTrue(model.candidates.isEmpty)
+        XCTAssertFalse(model.hasGenerated)
+        await model.generate()
+        model.condition.excludeHolidays = true
+        XCTAssertTrue(model.text.isEmpty)
+        XCTAssertFalse(model.hasGenerated)
+    }
+
 }
