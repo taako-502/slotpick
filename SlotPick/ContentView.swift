@@ -23,6 +23,10 @@ struct ContentView: View {
                         .textFieldStyle(.roundedBorder)
                         .accessibilityIdentifier("startAfterDays")
                     Text("日後から")
+                    Stepper("開始までの日数", value: $model.condition.startAfterDays, in: 0...365)
+                        .labelsHidden()
+                        .fixedSize()
+                        .accessibilityIdentifier("startAfterDaysStepper")
                 }
                 Text("0〜365日で入力。除外する土日・祝日・休日は日数に数えません。0は今日からです。")
                     .font(.caption).foregroundStyle(.secondary)
