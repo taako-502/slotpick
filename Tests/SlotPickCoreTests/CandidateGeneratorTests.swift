@@ -4,6 +4,7 @@ import XCTest
 
 private func fixedDurationCondition() -> SearchCondition {
     var condition = SearchCondition()
+    condition.startAfterDays = 0
     condition.candidateMode = .fixedDuration
     return condition
 }
@@ -35,7 +36,7 @@ final class CandidateGeneratorTests: XCTestCase {
         let c = SearchCondition()
         XCTAssertEqual(c.candidateMode, .freeTimeRanges)
         let slots = try generate([], c)
-        XCTAssertEqual(slots, (6...10).map { CandidateSlot(start: date($0, 10), end: date($0, 18)) })
+        XCTAssertEqual(slots, (7...11).map { CandidateSlot(start: date($0, 10), end: date($0, 18)) })
     }
 
     func testFreeTimeRangesRespectMergedEventsBuffersAndExactEnd() throws {
