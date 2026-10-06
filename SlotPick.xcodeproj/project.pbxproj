@@ -17,6 +17,22 @@
 			"path" = "SlotPickTests.xctest";
 			"sourceTree" = "BUILT_PRODUCTS_DIR";
 		};
+		"F08E6A00CDA64BD69B3D7101" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "folder.assetcatalog";
+			"path" = "SlotPick/Assets.xcassets";
+			"sourceTree" = "SOURCE_ROOT";
+		};
+		"F08E6A00CDA64BD69B3D7102" = {
+			"isa" = "PBXBuildFile";
+			"fileRef" = "F08E6A00CDA64BD69B3D7101";
+		};
+		"F08E6A00CDA64BD69B3D7103" = {
+			"isa" = "PBXResourcesBuildPhase";
+			"buildActionMask" = 2147483647;
+			"files" = ("F08E6A00CDA64BD69B3D7102");
+			"runOnlyForDeploymentPostprocessing" = 0;
+		};
 		"A02127A65B533D941C43F0C6" = {
 			"isa" = "PBXFileReference";
 			"lastKnownFileType" = "sourcecode.swift";
@@ -80,7 +96,7 @@
 		"69F8D45498D7E20DA99BB780" = {
 			"isa" = "PBXGroup";
 			"name" = "SlotPick";
-			"children" = ("A02127A65B533D941C43F0C6", "B9B10F965D4D8766B54B28B4");
+			"children" = ("A02127A65B533D941C43F0C6", "B9B10F965D4D8766B54B28B4", "F08E6A00CDA64BD69B3D7101");
 			"sourceTree" = "<group>";
 		};
 		"BFC937463906E5DB7A02A37C" = {
@@ -141,6 +157,7 @@
 			"buildSettings" = {
 				"PRODUCT_NAME" = "$(TARGET_NAME)";
 				"PRODUCT_BUNDLE_IDENTIFIER" = "com.taako502.slotpick";
+				"ASSETCATALOG_COMPILER_APPICON_NAME" = "AppIcon";
 				"GENERATE_INFOPLIST_FILE" = "YES";
 				"INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription" = "面談候補の空き時間を探すため、カレンダーの予定を読み取ります。";
 				"CODE_SIGN_ENTITLEMENTS" = "SlotPick/SlotPick.entitlements";
@@ -158,6 +175,7 @@
 			"buildSettings" = {
 				"PRODUCT_NAME" = "$(TARGET_NAME)";
 				"PRODUCT_BUNDLE_IDENTIFIER" = "com.taako502.slotpick";
+				"ASSETCATALOG_COMPILER_APPICON_NAME" = "AppIcon";
 				"GENERATE_INFOPLIST_FILE" = "YES";
 				"INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription" = "面談候補の空き時間を探すため、カレンダーの予定を読み取ります。";
 				"CODE_SIGN_ENTITLEMENTS" = "SlotPick/SlotPick.entitlements";
@@ -236,7 +254,7 @@
 		"4F6027D858B72CC70E5CC8E9" = {
 			"isa" = "PBXNativeTarget";
 			"buildConfigurationList" = "A35B84B959F54EFE1DB91090";
-			"buildPhases" = ("2D764CD838DB39F040AA7EC4", "12384B5908BE5FE5B3301CEE");
+			"buildPhases" = ("2D764CD838DB39F040AA7EC4", "12384B5908BE5FE5B3301CEE", "F08E6A00CDA64BD69B3D7103");
 			"buildRules" = ();
 			"dependencies" = ();
 			"name" = "SlotPick";
