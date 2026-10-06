@@ -23,7 +23,8 @@ concurrency:
 
 jobs:
   release:
-    runs-on: macos-26
+    # The release build still targets both arm64 and x86_64.
+    runs-on: macos-26-intel
     timeout-minutes: 30
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
