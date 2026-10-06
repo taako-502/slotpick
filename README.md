@@ -1,5 +1,7 @@
 # SlotPick
 
+[![CI](https://github.com/taako-502/slotpick/actions/workflows/ci.yml/badge.svg)](https://github.com/taako-502/slotpick/actions/workflows/ci.yml)
+
 Macのカレンダーに同期されているiCloud・Google等の予定から、面談候補と送信用テキストを生成するmacOSアプリです。macOS 14以降、Swift 6対応のXcodeを使用します。
 
 ## 実行
@@ -85,3 +87,21 @@ bash scripts/build-dmg.sh 0.1.1 1 /tmp/slotpick-release-assets
 ```
 
 GitHubの公開操作は手動ワークフローの最後だけで実行します。リリース処理のテストは一時的なローカルGitリポジトリと模擬APIを使用します。
+
+## CIとlint
+
+`CI` ワークフローはmainへのpush、main宛てPull Request、および手動実行に対応します。
+
+- `swift-format --strict` でSwiftコードの整形・スタイルを確認。
+- `actionlint` でGitHub Actions設定を検証。
+- Bashの構文確認、リリース処理のPythonテストを実行。
+- Xcodeでアプリのユニットテストを実行し、結果の `.xcresult` を7日間保存。
+
+CIとローカルの差を抑えるためXcode 26.6を使用します。Swiftの整形ルールは `.swift-format` に保存しています。整形とlintをローカルで実行するには次を使用してください。
+
+```sh
+xcrun swift-format format --in-place --recursive Package.swift SlotPick Sources Tests
+xcrun swift-format lint --strict --recursive Package.swift SlotPick Sources Tests
+```
+
+CIではタグやReleaseを作成しません。リリースは引き続き **Release DMG** から手動で実行します。

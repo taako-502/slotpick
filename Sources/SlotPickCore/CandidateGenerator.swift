@@ -30,14 +30,18 @@ public struct CandidateGenerator {
 
         for offset in 0..<condition.searchDays {
             guard let day = calendar.date(byAdding: .day, value: offset, to: calendar.startOfDay(for: now)),
-                  let nextDay = calendar.date(byAdding: .day, value: 1, to: day),
-                  let start = calendar.date(bySettingHour: condition.startHour, minute: 0, second: 0, of: day),
-                  let end = condition.endHour == 24 ? nextDay : calendar.date(
-                    bySettingHour: condition.endHour, minute: 0, second: 0, of: day
-                  ), start < end, start < nextDay else { continue }
+                let nextDay = calendar.date(byAdding: .day, value: 1, to: day),
+                let start = calendar.date(bySettingHour: condition.startHour, minute: 0, second: 0, of: day),
+                let end = condition.endHour == 24
+                    ? nextDay
+                    : calendar.date(
+                        bySettingHour: condition.endHour, minute: 0, second: 0, of: day
+                    ), start < end, start < nextDay
+            else { continue }
 
             // Check coverage before weekend filtering so unsupported dates never silently pass.
-            let isHoliday = condition.excludeHolidays
+            let isHoliday =
+                condition.excludeHolidays
                 ? try JapaneseHolidays.isHoliday(day, timeZone: calendar.timeZone) : false
             let weekday = calendar.component(.weekday, from: day)
             if condition.excludeWeekends && (weekday == 1 || weekday == 7) { continue }
@@ -48,8 +52,9 @@ public struct CandidateGenerator {
             func appendGap(until limit: Date) {
                 // Round every candidate, including non-quarter-hour durations.
                 while slots.count < condition.maxCandidatesPerDay,
-                      let rounded = roundedUp(cursor, calendar: calendar),
-                      rounded.addingTimeInterval(duration) <= limit {
+                    let rounded = roundedUp(cursor, calendar: calendar),
+                    rounded.addingTimeInterval(duration) <= limit
+                {
                     let finish = rounded.addingTimeInterval(duration)
                     slots.append(CandidateSlot(start: rounded, end: finish))
                     cursor = finish

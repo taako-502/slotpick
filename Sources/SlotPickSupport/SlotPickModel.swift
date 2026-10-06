@@ -103,7 +103,9 @@ public final class SlotPickModel {
         }
     }
 
-    private func refreshedCandidates(condition: SearchCondition, now: Date, calendar: Calendar) throws -> [CandidateSlot] {
+    private func refreshedCandidates(condition: SearchCondition, now: Date, calendar: Calendar) throws
+        -> [CandidateSlot]
+    {
         try condition.validateHolidayCoverage(now: now, calendar: calendar)
         let interval = try condition.eventQueryInterval(now: now, calendar: calendar)
         let busy = try service.busySlots(in: interval)
@@ -113,7 +115,8 @@ public final class SlotPickModel {
     private func show(error: Error) {
         invalidate(message: error.localizedDescription)
         if let generationError = error as? GenerationError,
-           case .holidayDataUnavailable = generationError {
+            case .holidayDataUnavailable = generationError
+        {
             isHolidayDataWarning = true
         }
     }

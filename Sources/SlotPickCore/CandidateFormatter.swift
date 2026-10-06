@@ -7,7 +7,8 @@ public struct CandidateFormatter {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timeZone
         let date = makeFormatter("yyyy年M月d日（E）HH:mm", timeZone: timeZone)
-        let endFormat = calendar.isDate(slot.start, inSameDayAs: slot.end)
+        let endFormat =
+            calendar.isDate(slot.start, inSameDayAs: slot.end)
             ? "HH:mm" : "yyyy年M月d日（E）HH:mm"
         let end = makeFormatter(endFormat, timeZone: timeZone)
         // Distinguish repeated local times during the autumn DST transition.

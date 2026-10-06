@@ -1,7 +1,7 @@
 import EventKit
-import SwiftUI
 import SlotPickCore
 import SlotPickSupport
+import SwiftUI
 
 struct ContentView: View {
     @State private var model = SlotPickModel(service: CalendarService(), clipboard: SystemClipboard())
@@ -24,10 +24,16 @@ struct ContentView: View {
                         ForEach(1...24, id: \.self) { Text(String(format: "%02d:00", $0)).tag($0) }
                     }
                 }
-                Stepper("面談時間：\(model.condition.durationMinutes)分", value: $model.condition.durationMinutes, in: 15...240, step: 15)
-                Stepper("予定の前後の余白：\(model.condition.bufferMinutes)分", value: $model.condition.bufferMinutes, in: 0...120, step: 15)
+                Stepper(
+                    "面談時間：\(model.condition.durationMinutes)分", value: $model.condition.durationMinutes, in: 15...240,
+                    step: 15)
+                Stepper(
+                    "予定の前後の余白：\(model.condition.bufferMinutes)分", value: $model.condition.bufferMinutes, in: 0...120,
+                    step: 15)
                 Stepper("候補数：\(model.condition.candidateCount)件", value: $model.condition.candidateCount, in: 1...20)
-                Stepper("1日最大：\(model.condition.maxCandidatesPerDay)件", value: $model.condition.maxCandidatesPerDay, in: 1...5)
+                Stepper(
+                    "1日最大：\(model.condition.maxCandidatesPerDay)件", value: $model.condition.maxCandidatesPerDay,
+                    in: 1...5)
                 Toggle("土日を除外", isOn: $model.condition.excludeWeekends)
                 Toggle("日本の祝日・休日を除外", isOn: $model.condition.excludeHolidays)
                 if model.condition.excludeHolidays {
@@ -72,10 +78,12 @@ struct ContentView: View {
                 }
             }
             if model.hasGenerated && model.candidates.count < model.condition.candidateCount {
-                Text(model.candidates.isEmpty
-                     ? "条件に合う空き時間がありません。期間や時間帯を広げてください。"
-                     : "条件に合う候補は\(model.candidates.count)件でした。")
-                    .foregroundStyle(.secondary)
+                Text(
+                    model.candidates.isEmpty
+                        ? "条件に合う空き時間がありません。期間や時間帯を広げてください。"
+                        : "条件に合う候補は\(model.candidates.count)件でした。"
+                )
+                .foregroundStyle(.secondary)
             }
             ScrollView {
                 Text(model.text.isEmpty ? "候補を生成すると、ここに送信用の文章が表示されます。" : model.text)

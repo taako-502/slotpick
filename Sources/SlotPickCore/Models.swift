@@ -15,13 +15,14 @@ public struct SearchCondition: Equatable, Sendable {
 
     public func validate() throws {
         guard (1...90).contains(searchDays),
-              (0...23).contains(startHour),
-              (1...24).contains(endHour),
-              startHour < endHour,
-              (1...240).contains(durationMinutes),
-              (0...120).contains(bufferMinutes),
-              (1...100).contains(candidateCount),
-              (1...20).contains(maxCandidatesPerDay) else {
+            (0...23).contains(startHour),
+            (1...24).contains(endHour),
+            startHour < endHour,
+            (1...240).contains(durationMinutes),
+            (0...120).contains(bufferMinutes),
+            (1...100).contains(candidateCount),
+            (1...20).contains(maxCandidatesPerDay)
+        else {
             throw GenerationError.invalidCondition
         }
     }

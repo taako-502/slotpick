@@ -92,7 +92,8 @@ public final class CalendarService: CalendarProviding {
         guard !calendars.isEmpty else { throw CalendarError.noCalendars }
         return store.events(in: interval, calendars: calendars).compactMap { event in
             guard event.availability != .free, event.status != .canceled,
-                  let start = event.start, let end = event.end, end > start else { return nil }
+                let start = event.start, let end = event.end, end > start
+            else { return nil }
             return BusySlot(start: start, end: end)
         }
     }
