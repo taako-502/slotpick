@@ -8,6 +8,8 @@ Macのカレンダーに同期されているiCloud・Google等の予定から�
 
 `SlotPick.xcodeproj`を開き、`SlotPick`スキーム・`My Mac`で実行してください。ローカル実行用の署名を設定済みです。配布する場合は自分のTeamと署名を設定してください。
 
+<img width="451" alt="Screenshot 2026-10-06 at 20 06 31" src="https://github.com/user-attachments/assets/3a0fdb0d-e457-41c1-9f1e-2170f3c25134" />
+
 初回の「候補を生成」でカレンダーのフルアクセスを求めます。許可が必要ですが、アプリの処理は読み取りのみです。Macの「カレンダー」アプリでアカウントの同期が完了していることを確認してください。
 
 ## 初期条件と候補の選び方
