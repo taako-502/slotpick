@@ -25,7 +25,7 @@ jobs:
   release:
     # The release build still targets both arm64 and x86_64.
     runs-on: macos-26-intel
-    timeout-minutes: 90
+    timeout-minutes: 30
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
     steps:
@@ -70,12 +70,7 @@ jobs:
         env:
           VERSION: ${{ steps.version.outputs.version }}
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
-          DEVELOPER_ID_CERTIFICATE_BASE64: ${{ secrets.DEVELOPER_ID_CERTIFICATE_BASE64 }}
-          DEVELOPER_ID_CERTIFICATE_PASSWORD: ${{ secrets.DEVELOPER_ID_CERTIFICATE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-        run: python3 scripts/signed-release.py "$VERSION" "$GITHUB_RUN_NUMBER" "$RUNNER_TEMP/release-assets"
+        run: bash scripts/build-dmg.sh "$VERSION" "$GITHUB_RUN_NUMBER" "$RUNNER_TEMP/release-assets"
 
       - name: Tag and publish GitHub Release
         env:
