@@ -35,6 +35,27 @@ class VersionTests(unittest.TestCase):
             release.bumped_version("0.1.0", [], "other")
 
 
+class ReleaseLookupTests(unittest.TestCase):
+    def test_draft_release_is_resolved_through_cli(self):
+        response = subprocess.CompletedProcess([], 0, '{"isDraft":true,"assets":[{"name":"app.dmg","size":42}],"url":"https://example.invalid/draft"}', "")
+        with patch.object(release.subprocess, "run", return_value=response) as run:
+            found = release.get_release("v0.1.1")
+        self.assertTrue(found["draft"])
+        self.assertEqual(found["assets"][0]["size"],42)
+        self.assertEqual(run.call_args.args[0], ["gh","release","view","v0.1.1","--json","isDraft,assets,url"])
+
+    def test_missing_release_returns_none(self):
+        response = subprocess.CompletedProcess([], 1, "", "release not found\n")
+        with patch.object(release.subprocess, "run", return_value=response):
+            self.assertIsNone(release.get_release("v0.1.1"))
+
+    def test_auth_or_network_errors_are_not_treated_as_missing(self):
+        response = subprocess.CompletedProcess([], 1, "", "HTTP 403: Resource not accessible")
+        with patch.object(release.subprocess, "run", return_value=response):
+            with self.assertRaisesRegex(RuntimeError, "403"):
+                release.get_release("v0.1.1")
+
+
 class RepositoryTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()

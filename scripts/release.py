@@ -72,10 +72,16 @@ def plan(bump, run_id):
 
 
 def get_release(tag):
-    result = subprocess.run(["gh", "api", f"repos/{{owner}}/{{repo}}/releases/tags/{tag}"], text=True, capture_output=True)
+    # The REST releases/tags endpoint does not reliably expose drafts. The CLI
+    # resolves unpublished releases too, which is required before publication.
+    result = subprocess.run(
+        ["gh", "release", "view", tag, "--json", "isDraft,assets,url"],
+        text=True, capture_output=True,
+    )
     if result.returncode == 0:
-        return json.loads(result.stdout)
-    if "HTTP 404" in result.stderr:
+        value = json.loads(result.stdout)
+        return {"draft": value["isDraft"], "assets": value["assets"], "html_url": value["url"]}
+    if result.stderr.strip() == "release not found":
         return None
     raise RuntimeError(result.stderr.strip())
 
@@ -126,6 +132,8 @@ def publish(version, bump, run_id, assets):
     # Only drafts can be resumed/replaced. Publish after BOTH assets have uploaded.
     command("gh", "release", "upload", tag, *(str(assets / name) for name in filenames), "--clobber")
     release = get_release(tag)
+    if release is None:
+        raise ValueError("Release could not be retrieved after upload; leaving it unpublished")
     uploaded = {asset["name"]: asset["size"] for asset in release["assets"]}
     if any(uploaded.get(name) != (assets / name).stat().st_size for name in filenames):
         raise ValueError("Release asset verification failed; leaving release as a draft")
