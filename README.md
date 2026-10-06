@@ -129,3 +129,7 @@ xcrun swift-format lint --strict --recursive Package.swift SlotPick Sources Test
 ```
 
 CIではタグやReleaseを作成しません。リリースは引き続き **Release DMG** から手動で実行します。
+
+## 記事
+
+「面談の候補日を複数提示してください」を解決するツール【SlotPick】（https://ap-ep.com/slotpick-mac-calendar-scheduling/）
