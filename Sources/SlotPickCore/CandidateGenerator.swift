@@ -7,7 +7,7 @@ public enum GenerationError: LocalizedError {
     public var errorDescription: String? {
         switch self {
         case .invalidCondition:
-            "時間帯や候補数を確認してください。開始時刻は終了時刻より前にしてください。"
+            "開始までの日数（0〜365日）、時間帯や候補数を確認してください。開始時刻は終了時刻より前にしてください。"
         case .holidayDataUnavailable:
             "祝日データの対応期間（\(JapaneseHolidays.supportedYears.lowerBound)〜\(JapaneseHolidays.supportedYears.upperBound)年）を超えています。アプリを更新するか、祝日の除外をオフにしてください。"
         }
@@ -40,13 +40,7 @@ public struct CandidateGenerator {
                     ), start < end, start < nextDay
             else { continue }
 
-            // Check coverage before weekend filtering so unsupported dates never silently pass.
-            let isHoliday =
-                condition.excludeHolidays
-                ? try JapaneseHolidays.isHoliday(day, timeZone: calendar.timeZone) : false
-            let weekday = calendar.component(.weekday, from: day)
-            if condition.excludeWeekends && (weekday == 1 || weekday == 7) { continue }
-            if isHoliday { continue }
+            if try condition.isExcludedDay(day, calendar: calendar) { continue }
 
             var cursor = max(start, now)
             var slots: [CandidateSlot] = []

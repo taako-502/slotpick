@@ -4,6 +4,7 @@ import XCTest
 
 private func fixedDurationCondition() -> SearchCondition {
     var condition = SearchCondition()
+    condition.startAfterDays = 0
     condition.candidateMode = .fixedDuration
     return condition
 }
@@ -27,7 +28,7 @@ final class CandidateGeneratorTests: XCTestCase {
     func testSearchStartsThreeDaysLaterForBothModes() throws {
         for mode in [CandidateMode.fixedDuration, .freeTimeRanges] {
             var c = SearchCondition()
-            c.startDaysFromNow = 3
+            c.startAfterDays = 3
             c.searchDays = 2
             c.candidateMode = mode
             let slots = try generate([], c)
@@ -38,7 +39,7 @@ final class CandidateGeneratorTests: XCTestCase {
 
     func testOffsetQueryIncludesBuffersAroundWholeSelectedPeriod() throws {
         var c = SearchCondition()
-        c.startDaysFromNow = 3
+        c.startAfterDays = 3
         c.searchDays = 2
         let interval = try c.eventQueryInterval(now: date(6, 9), calendar: calendar)
         XCTAssertEqual(interval.start, date(8, 23, 30))
@@ -47,7 +48,7 @@ final class CandidateGeneratorTests: XCTestCase {
 
     func testOffsetHolidayCoverageUsesSelectedDates() throws {
         var c = SearchCondition()
-        c.startDaysFromNow = 2
+        c.startAfterDays = 2
         c.searchDays = 1
         c.excludeHolidays = true
         let now = calendar.date(from: DateComponents(year: 2027, month: 12, day: 30))!
@@ -55,9 +56,9 @@ final class CandidateGeneratorTests: XCTestCase {
     }
 
     func testInvalidStartOffsetIsRejected() {
-        for offset in [-1, 91] {
+        for offset in [-1, 366] {
             var c = SearchCondition()
-            c.startDaysFromNow = offset
+            c.startAfterDays = offset
             XCTAssertThrowsError(try c.validate())
         }
     }
@@ -73,7 +74,7 @@ final class CandidateGeneratorTests: XCTestCase {
         let c = SearchCondition()
         XCTAssertEqual(c.candidateMode, .freeTimeRanges)
         let slots = try generate([], c)
-        XCTAssertEqual(slots, (6...10).map { CandidateSlot(start: date($0, 10), end: date($0, 18)) })
+        XCTAssertEqual(slots, (7...11).map { CandidateSlot(start: date($0, 10), end: date($0, 18)) })
     }
 
     func testFreeTimeRangesRespectMergedEventsBuffersAndExactEnd() throws {
