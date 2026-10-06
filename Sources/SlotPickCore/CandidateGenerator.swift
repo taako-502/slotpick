@@ -24,12 +24,13 @@ public struct CandidateGenerator {
         calendar: Calendar = .current
     ) throws -> [CandidateSlot] {
         try condition.validateHolidayCoverage(now: now, calendar: calendar)
+        let firstDay = try condition.searchStartDay(now: now, calendar: calendar)
         let busy = mergedBusySlots(busySlots, bufferMinutes: condition.bufferMinutes)
         let duration = TimeInterval(condition.durationMinutes * 60)
         var candidatesByDay: [[CandidateSlot]] = []
 
         for offset in 0..<condition.searchDays {
-            guard let day = calendar.date(byAdding: .day, value: offset, to: calendar.startOfDay(for: now)),
+            guard let day = calendar.date(byAdding: .day, value: offset, to: firstDay),
                 let nextDay = calendar.date(byAdding: .day, value: 1, to: day),
                 let start = calendar.date(bySettingHour: condition.startHour, minute: 0, second: 0, of: day),
                 let end = condition.endHour == 24

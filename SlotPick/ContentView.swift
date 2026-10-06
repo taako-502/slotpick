@@ -15,7 +15,12 @@ struct ContentView: View {
                 .foregroundStyle(.secondary)
 
             Form {
-                Stepper("対象期間：今日から\(model.condition.searchDays)日間", value: $model.condition.searchDays, in: 1...90)
+                Stepper(
+                    "検索開始：\(model.condition.startDaysFromNow)日後から", value: $model.condition.startDaysFromNow,
+                    in: 0...90)
+                Text("0日後は今日、1日後は明日から検索します。")
+                    .font(.caption).foregroundStyle(.secondary)
+                Stepper("対象期間：\(model.condition.searchDays)日間", value: $model.condition.searchDays, in: 1...90)
                 HStack {
                     Picker("開始", selection: $model.condition.startHour) {
                         ForEach(0..<24) { Text(String(format: "%02d:00", $0)).tag($0) }

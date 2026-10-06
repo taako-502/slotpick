@@ -45,6 +45,26 @@ final class SlotPickModelTests: XCTestCase {
         calendar.date(from: DateComponents(year: 2026, month: 10, day: day, hour: hour, minute: minute))!
     }
 
+    func testOffsetAppliesToFetchGenerationAndCopy() async {
+        let service = FakeCalendar()
+        let clipboard = FakeClipboard()
+        service.busy = [BusySlot(start: date(9, 10), end: date(9, 12))]
+        let model = SlotPickModel(
+            service: service, clipboard: clipboard, now: { self.date(6, 9) }, calendar: { self.calendar })
+        model.condition.startDaysFromNow = 3
+        model.condition.searchDays = 1
+        await model.generate()
+        XCTAssertEqual(model.candidates.first?.start, date(9, 12, 30))
+        XCTAssertEqual(service.intervals.first?.start, date(8, 23, 30))
+        XCTAssertEqual(service.intervals.first?.end, date(10, 0, 30))
+        model.copy()
+        XCTAssertTrue(model.copied)
+        XCTAssertEqual(service.intervals.count, 2)
+        model.condition.startDaysFromNow = 4
+        XCTAssertTrue(model.candidates.isEmpty)
+        XCTAssertFalse(model.hasGenerated)
+    }
+
     func testPermissionWaitUsesFreshTimeAndSearchDay() async {
         let service = FakeCalendar()
         let clipboard = FakeClipboard()

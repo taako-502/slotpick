@@ -6,6 +6,7 @@ public enum CandidateMode: Hashable, Sendable {
 }
 
 public struct SearchCondition: Equatable, Sendable {
+    public var startDaysFromNow = 0
     public var searchDays = 7
     public var startHour = 10
     public var endHour = 18
@@ -20,7 +21,8 @@ public struct SearchCondition: Equatable, Sendable {
     public init() {}
 
     public func validate() throws {
-        guard (1...90).contains(searchDays),
+        guard (0...90).contains(startDaysFromNow),
+            (1...90).contains(searchDays),
             (0...23).contains(startHour),
             (1...24).contains(endHour),
             startHour < endHour,
@@ -37,7 +39,7 @@ public struct SearchCondition: Equatable, Sendable {
     public func validateHolidayCoverage(now: Date, calendar: Calendar) throws {
         try validate()
         guard excludeHolidays else { return }
-        let firstDay = calendar.startOfDay(for: now)
+        let firstDay = try searchStartDay(now: now, calendar: calendar)
         guard let lastDay = calendar.date(byAdding: .day, value: searchDays - 1, to: firstDay) else {
             throw GenerationError.invalidCondition
         }
@@ -45,10 +47,20 @@ public struct SearchCondition: Equatable, Sendable {
         _ = try JapaneseHolidays.isHoliday(lastDay, timeZone: calendar.timeZone)
     }
 
+    /// Use calendar days so the selected date stays correct across daylight saving changes.
+    public func searchStartDay(now: Date, calendar: Calendar) throws -> Date {
+        try validate()
+        guard
+            let day = calendar.date(
+                byAdding: .day, value: startDaysFromNow, to: calendar.startOfDay(for: now))
+        else { throw GenerationError.invalidCondition }
+        return day
+    }
+
     /// Include neighbouring events whose buffers can overlap the search window.
     public func eventQueryInterval(now: Date, calendar: Calendar) throws -> DateInterval {
         try validate()
-        let start = calendar.startOfDay(for: now)
+        let start = try searchStartDay(now: now, calendar: calendar)
         guard let end = calendar.date(byAdding: .day, value: searchDays, to: start) else {
             throw GenerationError.invalidCondition
         }

@@ -24,6 +24,44 @@ final class CandidateGeneratorTests: XCTestCase {
         try CandidateGenerator().generate(
             busySlots: busy, condition: condition, now: now ?? date(6, 9), calendar: calendar)
     }
+    func testSearchStartsThreeDaysLaterForBothModes() throws {
+        for mode in [CandidateMode.fixedDuration, .freeTimeRanges] {
+            var c = SearchCondition()
+            c.startDaysFromNow = 3
+            c.searchDays = 2
+            c.candidateMode = mode
+            let slots = try generate([], c)
+            XCTAssertEqual(Set(slots.map { calendar.component(.day, from: $0.start) }), [9, 10])
+            XCTAssertEqual(slots.first?.start, date(9, 10))
+        }
+    }
+
+    func testOffsetQueryIncludesBuffersAroundWholeSelectedPeriod() throws {
+        var c = SearchCondition()
+        c.startDaysFromNow = 3
+        c.searchDays = 2
+        let interval = try c.eventQueryInterval(now: date(6, 9), calendar: calendar)
+        XCTAssertEqual(interval.start, date(8, 23, 30))
+        XCTAssertEqual(interval.end, date(11, 0, 30))
+    }
+
+    func testOffsetHolidayCoverageUsesSelectedDates() throws {
+        var c = SearchCondition()
+        c.startDaysFromNow = 2
+        c.searchDays = 1
+        c.excludeHolidays = true
+        let now = calendar.date(from: DateComponents(year: 2027, month: 12, day: 30))!
+        XCTAssertThrowsError(try c.validateHolidayCoverage(now: now, calendar: calendar))
+    }
+
+    func testInvalidStartOffsetIsRejected() {
+        for offset in [-1, 91] {
+            var c = SearchCondition()
+            c.startDaysFromNow = offset
+            XCTAssertThrowsError(try c.validate())
+        }
+    }
+
     func testFixedDurationSpreadsFiveCandidatesOverFiveDays() throws {
         let slots = try generate()
         XCTAssertEqual(slots.count, 5)
