@@ -1,0 +1,72 @@
+name: Release DMG
+run-name: Release DMG (${{ inputs.bump }})
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'バージョン更新: patch / minor / major'
+        required: true
+        default: patch
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+
+concurrency:
+  group: slotpick-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: macos-26
+    timeout-minutes: 30
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+    steps:
+      - name: Require main branch
+        run: |
+          if [[ "$GITHUB_REF" != refs/heads/main ]]; then
+            echo '::error::mainブランチを選択して実行してください。'
+            exit 1
+          fi
+
+      - name: Check out the requested commit and all tags
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Select version
+        id: version
+        env:
+          BUMP: ${{ inputs.bump }}
+        run: python3 scripts/release.py plan --bump "$BUMP" --run-id "$GITHUB_RUN_ID"
+
+      - name: Test release tooling
+        run: python3 -m unittest discover -s scripts/tests -v
+
+      - name: Test macOS application
+        run: |
+          xcodebuild -project SlotPick.xcodeproj -scheme SlotPick \
+            -configuration Debug -destination "platform=macOS,arch=$(uname -m)" \
+            -derivedDataPath "$RUNNER_TEMP/slotpick-tests" test
+
+      - name: Build and verify universal DMG
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: bash scripts/build-dmg.sh "$VERSION" "$GITHUB_RUN_NUMBER" "$RUNNER_TEMP/release-assets"
+
+      - name: Tag and publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ steps.version.outputs.version }}
+          BUMP: ${{ inputs.bump }}
+        run: |
+          python3 scripts/release.py publish --version "$VERSION" --bump "$BUMP" \
+            --run-id "$GITHUB_RUN_ID" --assets "$RUNNER_TEMP/release-assets"
