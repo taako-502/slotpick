@@ -16,7 +16,17 @@ struct ContentView: View {
                 .foregroundStyle(.secondary)
 
             Form {
-                Stepper("対象期間：今日から\(model.condition.searchDays)日間", value: $model.condition.searchDays, in: 1...90)
+                HStack {
+                    Text("候補を探す開始日：")
+                    TextField("日数", value: $model.condition.startAfterDays, format: .number)
+                        .frame(width: 70)
+                        .textFieldStyle(.roundedBorder)
+                        .accessibilityIdentifier("startAfterDays")
+                    Text("日後から")
+                }
+                Text("0〜365日で入力。除外する土日・祝日・休日は日数に数えません。0は今日からです。")
+                    .font(.caption).foregroundStyle(.secondary)
+                Stepper("対象期間：開始日から\(model.condition.searchDays)日間", value: $model.condition.searchDays, in: 1...90)
                 HStack {
                     Picker("開始", selection: $model.condition.startHour) {
                         ForEach(0..<24) { Text(String(format: "%02d:00", $0)).tag($0) }

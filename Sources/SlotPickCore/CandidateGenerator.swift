@@ -7,7 +7,7 @@ public enum GenerationError: LocalizedError {
     public var errorDescription: String? {
         switch self {
         case .invalidCondition:
-            "時間帯や候補数を確認してください。開始時刻は終了時刻より前にしてください。"
+            "開始までの日数（0〜365日）、時間帯や候補数を確認してください。開始時刻は終了時刻より前にしてください。"
         case .holidayDataUnavailable:
             "祝日データの対応期間（\(JapaneseHolidays.supportedYears.lowerBound)〜\(JapaneseHolidays.supportedYears.upperBound)年）を超えています。アプリを更新するか、祝日の除外をオフにしてください。"
         }
@@ -24,12 +24,13 @@ public struct CandidateGenerator {
         calendar: Calendar = .current
     ) throws -> [CandidateSlot] {
         try condition.validateHolidayCoverage(now: now, calendar: calendar)
+        let firstDay = try condition.searchStartDay(now: now, calendar: calendar)
         let busy = mergedBusySlots(busySlots, bufferMinutes: condition.bufferMinutes)
         let duration = TimeInterval(condition.durationMinutes * 60)
         var candidatesByDay: [[CandidateSlot]] = []
 
         for offset in 0..<condition.searchDays {
-            guard let day = calendar.date(byAdding: .day, value: offset, to: calendar.startOfDay(for: now)),
+            guard let day = calendar.date(byAdding: .day, value: offset, to: firstDay),
                 let nextDay = calendar.date(byAdding: .day, value: 1, to: day),
                 let start = calendar.date(bySettingHour: condition.startHour, minute: 0, second: 0, of: day),
                 let end = condition.endHour == 24
@@ -39,13 +40,7 @@ public struct CandidateGenerator {
                     ), start < end, start < nextDay
             else { continue }
 
-            // Check coverage before weekend filtering so unsupported dates never silently pass.
-            let isHoliday =
-                condition.excludeHolidays
-                ? try JapaneseHolidays.isHoliday(day, timeZone: calendar.timeZone) : false
-            let weekday = calendar.component(.weekday, from: day)
-            if condition.excludeWeekends && (weekday == 1 || weekday == 7) { continue }
-            if isHoliday { continue }
+            if try condition.isExcludedDay(day, calendar: calendar) { continue }
 
             var cursor = max(start, now)
             var slots: [CandidateSlot] = []
