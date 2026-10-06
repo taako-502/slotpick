@@ -45,7 +45,8 @@ final class CandidateGeneratorTests: XCTestCase {
             c.startTimeMinutes = 10 * 60 + 30
             c.endTimeMinutes = 11 * 60 + 30
             c.candidateMode = mode
-            let slots = try CandidateGenerator().generate(busySlots: [], condition: c, now: date(6, 9), calendar: calendar)
+            let slots = try CandidateGenerator().generate(
+                busySlots: [], condition: c, now: date(6, 9), calendar: calendar)
             XCTAssertEqual(slots, [CandidateSlot(start: date(6, 10, 30), end: date(6, 11, 30))])
         }
     }
@@ -54,14 +55,15 @@ final class CandidateGeneratorTests: XCTestCase {
         for (start, end, expected) in [
             (600, 630, CandidateSlot(start: date(6, 10), end: date(6, 10, 30))),
             (0, 30, CandidateSlot(start: date(6, 0), end: date(6, 0, 30))),
-            (1410, 1440, CandidateSlot(start: date(6, 23, 30), end: date(7, 0)))
+            (1410, 1440, CandidateSlot(start: date(6, 23, 30), end: date(7, 0))),
         ] {
             var c = SearchCondition()
             c.startAfterDays = 0
             c.searchDays = 1
             c.startTimeMinutes = start
             c.endTimeMinutes = end
-            let slots = try CandidateGenerator().generate(busySlots: [], condition: c, now: date(6, 0), calendar: calendar)
+            let slots = try CandidateGenerator().generate(
+                busySlots: [], condition: c, now: date(6, 0), calendar: calendar)
             XCTAssertEqual(slots, [expected])
         }
     }

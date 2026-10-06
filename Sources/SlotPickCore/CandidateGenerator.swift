@@ -32,7 +32,8 @@ public struct CandidateGenerator {
         for offset in 0..<condition.searchDays {
             guard let day = calendar.date(byAdding: .day, value: offset, to: firstDay),
                 let nextDay = calendar.date(byAdding: .day, value: 1, to: day),
-                let start = calendar.date(bySettingHour: condition.startHour, minute: condition.startMinute, second: 0, of: day),
+                let start = calendar.date(
+                    bySettingHour: condition.startHour, minute: condition.startMinute, second: 0, of: day),
                 let end = condition.endHour == 24
                     ? nextDay
                     : calendar.date(
