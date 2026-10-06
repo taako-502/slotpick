@@ -50,6 +50,15 @@ public struct CandidateGenerator {
             var cursor = max(start, now)
             var slots: [CandidateSlot] = []
             func appendGap(until limit: Date) {
+                if condition.candidateMode == .freeTimeRanges {
+                    guard slots.count < condition.maxCandidatesPerDay,
+                        let rounded = roundedUp(cursor, calendar: calendar),
+                        rounded.addingTimeInterval(duration) <= limit
+                    else { return }
+                    slots.append(CandidateSlot(start: rounded, end: limit))
+                    cursor = limit
+                    return
+                }
                 // Round every candidate, including non-quarter-hour durations.
                 while slots.count < condition.maxCandidatesPerDay,
                     let rounded = roundedUp(cursor, calendar: calendar),

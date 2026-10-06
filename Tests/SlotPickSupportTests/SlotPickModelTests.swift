@@ -112,6 +112,42 @@ final class SlotPickModelTests: XCTestCase {
         XCTAssertTrue(model.text.isEmpty)
     }
 
+    func testModeSwitchInvalidatesPreviewAndCopiesEntireRange() async {
+        let clipboard = FakeClipboard()
+        let model = SlotPickModel(
+            service: FakeCalendar(), clipboard: clipboard, now: { self.date(6, 9) }, calendar: { self.calendar })
+        model.condition.searchDays = 1
+        await model.generate()
+        XCTAssertEqual(model.candidates.first?.end, date(6, 11))
+        model.condition.candidateMode = .freeTimeRanges
+        XCTAssertTrue(model.candidates.isEmpty)
+        XCTAssertTrue(model.text.isEmpty)
+        XCTAssertFalse(model.hasGenerated)
+        await model.generate()
+        XCTAssertEqual(model.candidates, [CandidateSlot(start: date(6, 10), end: date(6, 18))])
+        XCTAssertTrue(model.text.contains("10:00〜18:00"))
+        model.copy()
+        XCTAssertTrue(model.copied)
+        XCTAssertEqual(clipboard.value, model.text)
+        model.condition.candidateMode = .fixedDuration
+        await model.generate()
+        XCTAssertEqual(model.candidates.first?.end, date(6, 11))
+    }
+
+    func testNewEventInsideRangePreventsCopy() async {
+        let service = FakeCalendar()
+        let clipboard = FakeClipboard()
+        let model = SlotPickModel(
+            service: service, clipboard: clipboard, now: { self.date(6, 9) }, calendar: { self.calendar })
+        model.condition.candidateMode = .freeTimeRanges
+        await model.generate()
+        service.busy = [BusySlot(start: date(6, 15), end: date(6, 16))]
+        model.copy()
+        XCTAssertEqual(clipboard.value, "original clipboard")
+        XCTAssertTrue(model.candidates.isEmpty)
+        XCTAssertNotNil(model.message)
+    }
+
     func testConditionChangeDuringPermissionWaitDiscardsResult() async {
         let service = FakeCalendar()
         let model = SlotPickModel(

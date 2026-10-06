@@ -23,6 +23,98 @@ final class CandidateGeneratorTests: XCTestCase {
         XCTAssertEqual(slots.map { calendar.component(.day, from: $0.start) }, [6, 7, 8, 9, 10])
         XCTAssertTrue(slots.allSatisfy { $0.end.timeIntervalSince($0.start) == 3600 })
     }
+
+    func testFreeTimeRangesKeepEntireEmptyWindow() throws {
+        var c = SearchCondition()
+        c.candidateMode = .freeTimeRanges
+        let slots = try generate([], c)
+        XCTAssertEqual(slots, (6...10).map { CandidateSlot(start: date($0, 10), end: date($0, 18)) })
+    }
+
+    func testFreeTimeRangesRespectMergedEventsBuffersAndExactEnd() throws {
+        var c = SearchCondition()
+        c.searchDays = 1
+        c.candidateMode = .freeTimeRanges
+        let slots = try generate(
+            [
+                BusySlot(start: date(6, 13), end: date(6, 14)),
+                BusySlot(start: date(6, 12, 37), end: date(6, 13, 30)),
+            ], c)
+        XCTAssertEqual(
+            slots,
+            [
+                CandidateSlot(start: date(6, 10), end: date(6, 12, 7)),
+                CandidateSlot(start: date(6, 14, 30), end: date(6, 18)),
+            ])
+    }
+
+    func testFreeTimeRangesRequireDurationAfterRounding() throws {
+        var c = SearchCondition()
+        c.searchDays = 1
+        c.candidateMode = .freeTimeRanges
+        c.bufferMinutes = 0
+        let busy = [
+            BusySlot(start: date(6, 11), end: date(6, 12, 7)),
+            BusySlot(start: date(6, 13, 7), end: date(6, 17, 15)),
+        ]
+        XCTAssertEqual(try generate(busy, c), [CandidateSlot(start: date(6, 10), end: date(6, 11))])
+    }
+
+    func testFreeTimeRangesRespectNowAndOvernightBuffers() throws {
+        var c = SearchCondition()
+        c.searchDays = 1
+        c.candidateMode = .freeTimeRanges
+        XCTAssertEqual(
+            try generate([], c, now: date(6, 13, 7)),
+            [
+                CandidateSlot(start: date(6, 13, 15), end: date(6, 18))
+            ])
+        XCTAssertEqual(
+            try generate([BusySlot(start: date(5, 23), end: date(6, 10, 7))], c),
+            [
+                CandidateSlot(start: date(6, 10, 45), end: date(6, 18))
+            ])
+        XCTAssertTrue(try generate([BusySlot(start: date(6, 0), end: date(7, 0))], c).isEmpty)
+        XCTAssertTrue(try generate([], c, now: date(6, 18)).isEmpty)
+    }
+
+    func testFreeTimeRangesRespectDailyLimitAndSpreadAcrossDays() throws {
+        var c = SearchCondition()
+        c.searchDays = 2
+        c.candidateMode = .freeTimeRanges
+        c.candidateCount = 3
+        c.maxCandidatesPerDay = 2
+        c.bufferMinutes = 0
+        let busy = (6...7).flatMap { day in
+            [
+                BusySlot(start: date(day, 12), end: date(day, 13)),
+                BusySlot(start: date(day, 15), end: date(day, 16)),
+            ]
+        }
+        XCTAssertEqual(
+            try generate(busy, c),
+            [
+                CandidateSlot(start: date(6, 10), end: date(6, 12)),
+                CandidateSlot(start: date(6, 13), end: date(6, 15)),
+                CandidateSlot(start: date(7, 10), end: date(7, 12)),
+            ])
+        c.candidateCount = 10
+        XCTAssertEqual(try generate(busy, c).count, 4)
+    }
+
+    func testFreeTimeRangesRespectExcludedDatesAndMidnightEnd() throws {
+        var c = SearchCondition()
+        c.searchDays = 4
+        c.candidateMode = .freeTimeRanges
+        c.excludeWeekends = true
+        c.excludeHolidays = true
+        c.endHour = 24
+        XCTAssertEqual(
+            try generate([], c, now: date(10, 9)),
+            [
+                CandidateSlot(start: date(13, 10), end: date(14, 0))
+            ])
+    }
     func testBufferAndMergedOverlappingEvents() throws {
         var c = SearchCondition()
         c.searchDays = 1
