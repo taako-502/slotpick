@@ -52,8 +52,24 @@ struct ContentView: View {
             }
 
             if let message = model.message {
-                Text(message).foregroundStyle(.orange).textSelection(.enabled)
-                    .accessibilityIdentifier("statusMessage")
+                if model.isHolidayDataWarning {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Label("祝日データがないため、候補を生成できません", systemImage: "exclamationmark.triangle.fill")
+                            .font(.headline)
+                            .foregroundStyle(.orange)
+                        Text(message).textSelection(.enabled)
+                        Button("祝日の除外をオフにする") { model.condition.excludeHolidays = false }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(14)
+                    .background(.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
+                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(.orange, lineWidth: 1.5))
+                    .accessibilityElement(children: .contain)
+                    .accessibilityIdentifier("holidayDataWarning")
+                } else {
+                    Text(message).foregroundStyle(.orange).textSelection(.enabled)
+                        .accessibilityIdentifier("statusMessage")
+                }
             }
             if model.hasGenerated && model.candidates.count < model.condition.candidateCount {
                 Text(model.candidates.isEmpty

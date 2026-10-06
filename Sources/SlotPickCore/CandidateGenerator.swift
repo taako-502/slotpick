@@ -23,7 +23,7 @@ public struct CandidateGenerator {
         now: Date = Date(),
         calendar: Calendar = .current
     ) throws -> [CandidateSlot] {
-        try condition.validate()
+        try condition.validateHolidayCoverage(now: now, calendar: calendar)
         let busy = mergedBusySlots(busySlots, bufferMinutes: condition.bufferMinutes)
         let duration = TimeInterval(condition.durationMinutes * 60)
         var candidatesByDay: [[CandidateSlot]] = []

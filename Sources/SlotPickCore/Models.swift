@@ -26,6 +26,18 @@ public struct SearchCondition: Equatable, Sendable {
         }
     }
 
+    /// Validate data coverage before asking for calendar access or fetching personal events.
+    public func validateHolidayCoverage(now: Date, calendar: Calendar) throws {
+        try validate()
+        guard excludeHolidays else { return }
+        let firstDay = calendar.startOfDay(for: now)
+        guard let lastDay = calendar.date(byAdding: .day, value: searchDays - 1, to: firstDay) else {
+            throw GenerationError.invalidCondition
+        }
+        _ = try JapaneseHolidays.isHoliday(firstDay, timeZone: calendar.timeZone)
+        _ = try JapaneseHolidays.isHoliday(lastDay, timeZone: calendar.timeZone)
+    }
+
     /// Include neighbouring events whose buffers can overlap the search window.
     public func eventQueryInterval(now: Date, calendar: Calendar) throws -> DateInterval {
         try validate()

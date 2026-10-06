@@ -26,6 +26,7 @@ public final class SlotPickModel {
     public private(set) var candidates: [CandidateSlot] = []
     public private(set) var text = ""
     public private(set) var message: String?
+    public private(set) var isHolidayDataWarning = false
     public private(set) var isLoading = false
     public private(set) var hasGenerated = false
     public private(set) var copied = false
@@ -57,7 +58,7 @@ public final class SlotPickModel {
         isLoading = true
         defer { isLoading = false }
         do {
-            try snapshot.validate()
+            try snapshot.validateHolidayCoverage(now: now(), calendar: currentCalendar())
             try await service.requestAccess()
             guard requestedRevision == revision, !Task.isCancelled else { return }
             // Permission prompts can remain open for minutes or across midnight.
@@ -68,7 +69,7 @@ public final class SlotPickModel {
             text = CandidateFormatter().text(candidates, timeZone: calendar.timeZone)
             hasGenerated = true
         } catch {
-            if requestedRevision == revision { message = error.localizedDescription }
+            if requestedRevision == revision { show(error: error) }
         }
     }
 
@@ -98,14 +99,23 @@ public final class SlotPickModel {
             copied = clipboard.write(text)
             message = copied ? nil : "コピーできませんでした。もう一度お試しください。"
         } catch {
-            invalidate(message: error.localizedDescription)
+            show(error: error)
         }
     }
 
     private func refreshedCandidates(condition: SearchCondition, now: Date, calendar: Calendar) throws -> [CandidateSlot] {
+        try condition.validateHolidayCoverage(now: now, calendar: calendar)
         let interval = try condition.eventQueryInterval(now: now, calendar: calendar)
         let busy = try service.busySlots(in: interval)
         return try CandidateGenerator().generate(busySlots: busy, condition: condition, now: now, calendar: calendar)
+    }
+
+    private func show(error: Error) {
+        invalidate(message: error.localizedDescription)
+        if let generationError = error as? GenerationError,
+           case .holidayDataUnavailable = generationError {
+            isHolidayDataWarning = true
+        }
     }
 
     private func invalidate(message: String? = nil) {
@@ -116,5 +126,6 @@ public final class SlotPickModel {
         copied = false
         generatedTimeZone = nil
         self.message = message
+        isHolidayDataWarning = false
     }
 }

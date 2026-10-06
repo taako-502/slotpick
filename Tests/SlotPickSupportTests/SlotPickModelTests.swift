@@ -9,8 +9,10 @@ private final class FakeCalendar: CalendarProviding {
     var error: Error?
     var onAccess: (() -> Void)?
     var intervals: [DateInterval] = []
+    var accessRequests = 0
 
     func requestAccess() async throws {
+        accessRequests += 1
         onAccess?()
         if let error { throw error }
     }
@@ -157,6 +159,47 @@ final class SlotPickModelTests: XCTestCase {
         model.condition.excludeHolidays = true
         XCTAssertTrue(model.text.isEmpty)
         XCTAssertFalse(model.hasGenerated)
+    }
+
+    func testMissingHolidayDataShowsWarningBeforeCalendarAccess() async {
+        let service = FakeCalendar()
+        let unavailable = calendar.date(from:DateComponents(year:JapaneseHolidays.supportedYears.upperBound + 1,month:1,day:1,hour:9))!
+        let model = SlotPickModel(service:service,clipboard:FakeClipboard(),now:{ unavailable },calendar:{ self.calendar })
+        model.condition.excludeHolidays = true
+        await model.generate()
+        XCTAssertTrue(model.isHolidayDataWarning)
+        XCTAssertNotNil(model.message)
+        XCTAssertFalse(model.isLoading)
+        XCTAssertFalse(model.hasGenerated)
+        XCTAssertTrue(model.candidates.isEmpty)
+        XCTAssertEqual(service.accessRequests,0)
+        XCTAssertTrue(service.intervals.isEmpty)
+        model.condition.excludeHolidays = false
+        XCTAssertFalse(model.isHolidayDataWarning)
+        XCTAssertNil(model.message)
+        await model.generate()
+        XCTAssertFalse(model.candidates.isEmpty)
+    }
+
+    func testDataCoverageWarningAfterPermissionWaitCrossesYear() async {
+        let service = FakeCalendar()
+        var timestamp = calendar.date(from:DateComponents(year:JapaneseHolidays.supportedYears.upperBound,month:12,day:31,hour:23))!
+        service.onAccess = { timestamp = timestamp.addingTimeInterval(7200) }
+        let model = SlotPickModel(service:service,clipboard:FakeClipboard(),now:{ timestamp },calendar:{ self.calendar })
+        model.condition.searchDays = 1
+        model.condition.excludeHolidays = true
+        await model.generate()
+        XCTAssertTrue(model.isHolidayDataWarning)
+        XCTAssertTrue(service.intervals.isEmpty)
+    }
+
+    func testOrdinaryErrorsDoNotShowHolidayDataWarning() async {
+        let service = FakeCalendar(); service.error = CalendarError.accessDenied
+        let model = SlotPickModel(service:service,clipboard:FakeClipboard(),now:{ self.date(6,9) },calendar:{ self.calendar })
+        model.condition.excludeHolidays = true
+        await model.generate()
+        XCTAssertNotNil(model.message)
+        XCTAssertFalse(model.isHolidayDataWarning)
     }
 
 }
