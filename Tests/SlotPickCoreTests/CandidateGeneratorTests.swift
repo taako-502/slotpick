@@ -37,6 +37,44 @@ final class CandidateGeneratorTests: XCTestCase {
         }
     }
 
+    func testHalfHourWindowIsUsedInBothModes() throws {
+        for mode in [CandidateMode.freeTimeRanges, .fixedDuration] {
+            var c = SearchCondition()
+            c.startAfterDays = 0
+            c.searchDays = 1
+            c.startTimeMinutes = 10 * 60 + 30
+            c.endTimeMinutes = 11 * 60 + 30
+            c.candidateMode = mode
+            let slots = try CandidateGenerator().generate(busySlots: [], condition: c, now: date(6, 9), calendar: calendar)
+            XCTAssertEqual(slots, [CandidateSlot(start: date(6, 10, 30), end: date(6, 11, 30))])
+        }
+    }
+
+    func testHalfHourWindowWithinSameHourAndAtMidnight() throws {
+        for (start, end, expected) in [
+            (600, 630, CandidateSlot(start: date(6, 10), end: date(6, 10, 30))),
+            (0, 30, CandidateSlot(start: date(6, 0), end: date(6, 0, 30))),
+            (1410, 1440, CandidateSlot(start: date(6, 23, 30), end: date(7, 0)))
+        ] {
+            var c = SearchCondition()
+            c.startAfterDays = 0
+            c.searchDays = 1
+            c.startTimeMinutes = start
+            c.endTimeMinutes = end
+            let slots = try CandidateGenerator().generate(busySlots: [], condition: c, now: date(6, 0), calendar: calendar)
+            XCTAssertEqual(slots, [expected])
+        }
+    }
+
+    func testInvalidHalfHourWindowIsRejected() {
+        for (start, end) in [(630, 630), (660, 630), (600, 1470), (615, 660), (600, 675)] {
+            var c = SearchCondition()
+            c.startTimeMinutes = start
+            c.endTimeMinutes = end
+            XCTAssertThrowsError(try c.validate())
+        }
+    }
+
     func testOffsetQueryIncludesBuffersAroundWholeSelectedPeriod() throws {
         var c = SearchCondition()
         c.startAfterDays = 3

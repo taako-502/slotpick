@@ -9,7 +9,9 @@ public struct SearchCondition: Codable, Equatable, Sendable {
     public var startAfterDays = 1
     public var searchDays = 7
     public var startHour = 10
+    public var startMinute = 0
     public var endHour = 18
+    public var endMinute = 0
     public var durationMinutes = 60
     public var candidateMode: CandidateMode = .freeTimeRanges
     public var bufferMinutes = 30
@@ -20,8 +22,24 @@ public struct SearchCondition: Codable, Equatable, Sendable {
 
     public init() {}
 
+    public var startTimeMinutes: Int {
+        get { startHour * 60 + startMinute }
+        set {
+            startHour = newValue / 60
+            startMinute = newValue % 60
+        }
+    }
+
+    public var endTimeMinutes: Int {
+        get { endHour * 60 + endMinute }
+        set {
+            endHour = newValue / 60
+            endMinute = newValue % 60
+        }
+    }
+
     private enum CodingKeys: String, CodingKey {
-        case startAfterDays, searchDays, startHour, endHour, durationMinutes, candidateMode
+        case startAfterDays, searchDays, startHour, startMinute, endHour, endMinute, durationMinutes, candidateMode
         case bufferMinutes, candidateCount, maxCandidatesPerDay, excludeWeekends, excludeHolidays
     }
 
@@ -31,7 +49,9 @@ public struct SearchCondition: Codable, Equatable, Sendable {
         startAfterDays = try values.decodeIfPresent(Int.self, forKey: .startAfterDays) ?? 1
         searchDays = try values.decode(Int.self, forKey: .searchDays)
         startHour = try values.decode(Int.self, forKey: .startHour)
+        startMinute = try values.decodeIfPresent(Int.self, forKey: .startMinute) ?? 0
         endHour = try values.decode(Int.self, forKey: .endHour)
+        endMinute = try values.decodeIfPresent(Int.self, forKey: .endMinute) ?? 0
         durationMinutes = try values.decode(Int.self, forKey: .durationMinutes)
         candidateMode = try values.decode(CandidateMode.self, forKey: .candidateMode)
         bufferMinutes = try values.decode(Int.self, forKey: .bufferMinutes)
@@ -45,8 +65,11 @@ public struct SearchCondition: Codable, Equatable, Sendable {
         guard (0...365).contains(startAfterDays),
             (1...90).contains(searchDays),
             (0...23).contains(startHour),
-            (1...24).contains(endHour),
-            startHour < endHour,
+            [0, 30].contains(startMinute),
+            (0...24).contains(endHour),
+            [0, 30].contains(endMinute),
+            endHour < 24 || endMinute == 0,
+            startTimeMinutes < endTimeMinutes,
             (1...240).contains(durationMinutes),
             (0...120).contains(bufferMinutes),
             (1...100).contains(candidateCount),

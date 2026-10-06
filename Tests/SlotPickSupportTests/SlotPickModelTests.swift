@@ -84,8 +84,8 @@ final class SlotPickModelTests: XCTestCase {
         XCTAssertEqual(model.condition, SearchCondition())
         model.condition.startAfterDays = 3
         model.condition.searchDays = 14
-        model.condition.startHour = 9
-        model.condition.endHour = 21
+        model.condition.startTimeMinutes = 9 * 60 + 30
+        model.condition.endTimeMinutes = 21 * 60 + 30
         model.condition.candidateMode = .fixedDuration
         model.condition.durationMinutes = 90
         model.condition.bufferMinutes = 45
@@ -123,6 +123,8 @@ final class SlotPickModelTests: XCTestCase {
         let encoded = try JSONEncoder().encode(expected)
         var legacy = try XCTUnwrap(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
         legacy.removeValue(forKey: "startAfterDays")
+        legacy.removeValue(forKey: "startMinute")
+        legacy.removeValue(forKey: "endMinute")
         preferences.set(try JSONSerialization.data(withJSONObject: legacy), forKey: SlotPickModel.conditionKey)
         let restored = SlotPickModel(
             service: FakeCalendar(), clipboard: FakeClipboard(), preferences: preferences)

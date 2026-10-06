@@ -32,11 +32,15 @@ struct ContentView: View {
                     .font(.caption).foregroundStyle(.secondary)
                 Stepper("対象期間：開始日から\(model.condition.searchDays)日間", value: $model.condition.searchDays, in: 1...90)
                 HStack {
-                    Picker("開始", selection: $model.condition.startHour) {
-                        ForEach(0..<24) { Text(String(format: "%02d:00", $0)).tag($0) }
+                    Picker("開始", selection: $model.condition.startTimeMinutes) {
+                        ForEach(Array(stride(from: 0, through: 1410, by: 30)), id: \.self) { minutes in
+                            Text(String(format: "%02d:%02d", minutes / 60, minutes % 60)).tag(minutes)
+                        }
                     }
-                    Picker("終了", selection: $model.condition.endHour) {
-                        ForEach(1...24, id: \.self) { Text(String(format: "%02d:00", $0)).tag($0) }
+                    Picker("終了", selection: $model.condition.endTimeMinutes) {
+                        ForEach(Array(stride(from: 30, through: 1440, by: 30)), id: \.self) { minutes in
+                            Text(String(format: "%02d:%02d", minutes / 60, minutes % 60)).tag(minutes)
+                        }
                     }
                 }
                 Picker("候補の表示", selection: $model.condition.candidateMode) {
