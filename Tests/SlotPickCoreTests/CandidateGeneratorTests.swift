@@ -48,16 +48,38 @@ final class CandidateGeneratorTests: XCTestCase {
             ])
     }
 
-    func testFreeTimeRangesRequireDurationAfterRounding() throws {
+    func testFreeTimeRangesIncludeShortGapsRegardlessOfDuration() throws {
         var c = SearchCondition()
         c.searchDays = 1
         c.candidateMode = .freeTimeRanges
         c.bufferMinutes = 0
+        c.maxCandidatesPerDay = 5
         let busy = [
             BusySlot(start: date(6, 11), end: date(6, 12, 7)),
             BusySlot(start: date(6, 13, 7), end: date(6, 17, 15)),
         ]
-        XCTAssertEqual(try generate(busy, c), [CandidateSlot(start: date(6, 10), end: date(6, 11))])
+        let expected = [
+            CandidateSlot(start: date(6, 10), end: date(6, 11)),
+            CandidateSlot(start: date(6, 12, 15), end: date(6, 13, 7)),
+            CandidateSlot(start: date(6, 17, 15), end: date(6, 18)),
+        ]
+        for minutes in [15, 60, 240] {
+            c.durationMinutes = minutes
+            XCTAssertEqual(try generate(busy, c), expected)
+        }
+    }
+
+    func testFreeTimeRangesDoNotIncludeEmptyGapsAfterRounding() throws {
+        var c = SearchCondition()
+        c.searchDays = 1
+        c.candidateMode = .freeTimeRanges
+        c.bufferMinutes = 0
+        XCTAssertEqual(
+            try generate(
+                [
+                    BusySlot(start: date(6, 11), end: date(6, 12, 7)),
+                    BusySlot(start: date(6, 12, 15), end: date(6, 17, 50)),
+                ], c), [CandidateSlot(start: date(6, 10), end: date(6, 11))])
     }
 
     func testFreeTimeRangesRespectNowAndOvernightBuffers() throws {

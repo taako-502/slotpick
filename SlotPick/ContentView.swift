@@ -30,12 +30,14 @@ struct ContentView: View {
                 }
                 .accessibilityIdentifier("candidateMode")
                 if model.condition.candidateMode == .freeTimeRanges {
-                    Text("面談時間以上の空きを、終了までの範囲で表示します。開始は15分単位、1つの範囲を1件と数えます。")
+                    Text("空き時間を、終了までの範囲で表示します。開始は15分単位、1つの範囲を1件と数えます。")
                         .font(.caption).foregroundStyle(.secondary)
+                } else {
+                    Stepper(
+                        "面談時間：\(model.condition.durationMinutes)分", value: $model.condition.durationMinutes,
+                        in: 15...240,
+                        step: 15)
                 }
-                Stepper(
-                    "面談時間：\(model.condition.durationMinutes)分", value: $model.condition.durationMinutes, in: 15...240,
-                    step: 15)
                 Stepper(
                     "予定の前後の余白：\(model.condition.bufferMinutes)分", value: $model.condition.bufferMinutes, in: 0...120,
                     step: 15)

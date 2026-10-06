@@ -53,7 +53,7 @@ public struct CandidateGenerator {
                 if condition.candidateMode == .freeTimeRanges {
                     guard slots.count < condition.maxCandidatesPerDay,
                         let rounded = roundedUp(cursor, calendar: calendar),
-                        rounded.addingTimeInterval(duration) <= limit
+                        rounded < limit
                     else { return }
                     slots.append(CandidateSlot(start: rounded, end: limit))
                     cursor = limit
