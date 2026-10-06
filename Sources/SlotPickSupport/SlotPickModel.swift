@@ -21,7 +21,14 @@ public struct SystemClipboard: ClipboardWriting {
 @Observable
 public final class SlotPickModel {
     public var condition = SearchCondition() {
-        didSet { if condition != oldValue { invalidate() } }
+        didSet {
+            if condition != oldValue {
+                if let data = try? JSONEncoder().encode(condition) {
+                    preferences?.set(data, forKey: Self.conditionKey)
+                }
+                invalidate()
+            }
+        }
     }
     public private(set) var candidates: [CandidateSlot] = []
     public private(set) var text = ""
@@ -35,6 +42,8 @@ public final class SlotPickModel {
     @ObservationIgnored private let clipboard: any ClipboardWriting
     @ObservationIgnored private let now: () -> Date
     @ObservationIgnored private let currentCalendar: () -> Calendar
+    @ObservationIgnored private let preferences: UserDefaults?
+    static let conditionKey = "lastSearchCondition.v1"
     @ObservationIgnored private var generatedTimeZone: TimeZone?
     @ObservationIgnored private var revision = 0
 
@@ -42,12 +51,19 @@ public final class SlotPickModel {
         service: any CalendarProviding,
         clipboard: any ClipboardWriting,
         now: @escaping () -> Date = { Date() },
-        calendar: @escaping () -> Calendar = { Calendar.current }
+        calendar: @escaping () -> Calendar = { Calendar.current },
+        preferences: UserDefaults? = nil
     ) {
         self.service = service
         self.clipboard = clipboard
         self.now = now
         self.currentCalendar = calendar
+        self.preferences = preferences
+        if let data = preferences?.data(forKey: Self.conditionKey),
+            let saved = try? JSONDecoder().decode(SearchCondition.self, from: data)
+        {
+            condition = saved
+        }
     }
 
     public func generate() async {
